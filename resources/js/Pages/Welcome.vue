@@ -69,14 +69,7 @@ defineProps({
           v-if="canLogin"
           class="px-8 py-3 rounded-full bg-[#EABE6C] text-[#891652] font-bold shadow-lg hover:bg-[#d4a258] hover:text-[#721341]"
         >
-          Get Started
-        </Link>
-        <Link
-          :href="route('register')"
-          v-if="canRegister"
-          class="px-8 py-3 rounded-full bg-[#891652] text-[#EABE6C] font-bold shadow-lg hover:bg-[#701241] hover:text-[#d4a258]"
-        >
-          Sign Up Now
+          Ienākt
         </Link>
       </div>
     </section>
@@ -85,7 +78,7 @@ defineProps({
     <footer class="bg-[#EABE6C] dark:bg-[#3A3A3A] text-center py-8">
       <p class="text-sm text-gray-800 dark:text-gray-300">
         <span class="text-gray-700 dark:text-gray-400">© 2025. SIA "Abrams Business Services" All rights reserved.</span><br />
-        Laravel v{{ laravelVersion }} (PHP v{{ phpVersion }})
+        Veidots ar Laravel v{{ laravelVersion }} (PHP v{{ phpVersion }})
       </p>
     </footer>
   </div>
