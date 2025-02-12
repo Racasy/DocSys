@@ -20,7 +20,7 @@ return new class extends Migration
 
             // Added
             $table->enum('role', ['user', 'admin'])->default('user');
-            $table->string('phone', 20)->unique();
+            $table->string('phone', 20)->unique()->nullable();
 
             $table->rememberToken();
             $table->timestamps();
