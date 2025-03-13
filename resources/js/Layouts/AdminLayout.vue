@@ -13,7 +13,7 @@ const showingNavigationDropdown = ref(false);
                 <div class="flex h-16 justify-between items-center">
                     <!-- Logo -->
                     <div class="flex items-center">
-                        <Link :href="route('dashboard')">
+                        <Link :href="route('adminDashboard')">
                             <img src="/images/MainLogo.png" alt="Logo" class="h-8" />
                         </Link>
                     </div>
@@ -21,26 +21,33 @@ const showingNavigationDropdown = ref(false);
                     <!-- Desktop Navigation Links -->
                     <div class="hidden sm:flex items-center space-x-8">
                         <Link
-                            :href="route('dashboard')"
+                            :href="route('adminDashboard')"
                             :class="{'border-b-4 border-[#891652]': route().current('dashboard'), 'text-white hover:text-[#d4a258]': !route().current('dashboard')}"
                             class="px-3 py-2 text-sm font-medium"
                         >
                             Sākums
                         </Link>
                         <Link
-                            :href="route('profile.edit')"
+                            :href="route('admin.requests.all')"
                             :class="{'border-b-4 border-[#891652]': route().current('profile.edit'), 'text-white hover:text-[#d4a258]': !route().current('profile.edit')}"
                             class="px-3 py-2 text-sm font-medium"
                         >
-                            Profils
+                            Iesniegumi visi
                         </Link>
                         <Link
-                            :href="route('user.requests.index')"
+                            :href="route('admin.requests.pending')"
                             :class="{'border-b-4 border-[#891652]': route().current('profile.edit'), 'text-white hover:text-[#d4a258]': !route().current('profile.edit')}"
                             class="px-3 py-2 text-sm font-medium"
                         >
-                            Index
-                        </Link>
+                            Iesniegumi procesā
+                        </Link> 
+                        <Link
+                            :href="route('admin.requests.create')"
+                            :class="{'border-b-4 border-[#891652]': route().current('profile.edit'), 'text-white hover:text-[#d4a258]': !route().current('profile.edit')}"
+                            class="px-3 py-2 text-sm font-medium"
+                        >
+                            Izveidot iesniegumu
+                        </Link> 
                         <Link
                             :href="route('logout')"
                             method="post"

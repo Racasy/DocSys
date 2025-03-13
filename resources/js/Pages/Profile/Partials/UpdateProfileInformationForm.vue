@@ -18,7 +18,6 @@ const user = usePage().props.auth.user;
 
 const form = useForm({
     email: user.email,
-    phoneNumber: user.phoneNumber,
 });
 
 </script>
@@ -60,17 +59,6 @@ const form = useForm({
               required
             />
             <InputError class="mt-2" :message="form.errors.email" />
-          </div>
-  
-          <div>
-            <InputLabel for="phoneNumber" value="Tālruņa numurs" class="text-gray-700" />
-            <TextInput
-              id="phoneNumber"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              v-model="form.phoneNumber"
-              required
-            />
-            <InputError class="mt-2" :message="form.errors.phoneNumber" />
           </div>
         </div>
   

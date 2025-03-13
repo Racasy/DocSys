@@ -45,4 +45,24 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function documentRequests()
+    {
+        return $this->hasMany(DocumentRequest::class);
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(Document::class);
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(DocumentComment::class);
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(\App\Models\Notification::class);
+    }
 }
