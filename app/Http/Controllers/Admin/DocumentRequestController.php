@@ -22,6 +22,20 @@ class DocumentRequestController extends Controller
         ]);
     }
 
+    public function destroy($requestId)
+    {
+        $requestObj = DocumentRequest::findOrFail($requestId);
+
+        // Delete all related documents (optional, remove if not needed)
+        $requestObj->documents()->delete();
+
+        // Delete the request
+        $requestObj->delete();
+
+        return redirect()->route('admin.requests.all')
+            ->with('success', 'Request deleted successfully!');
+    }
+
     // Show all requests, with optional filtering
     public function indexAll(Request $request)
     {
@@ -70,10 +84,9 @@ class DocumentRequestController extends Controller
 
     public function create()
     {
-        // Get a list of users who have role = 'user'
-        // so admin can assign the request to a specific user
+    
         $users = User::where('role', 'user')->get(['id','name','email']);
-
+    
         return inertia('Admin/Requests/Create', [
             'users' => $users
         ]);
@@ -110,22 +123,26 @@ class DocumentRequestController extends Controller
         $requestObj = DocumentRequest::findOrFail($requestId);
         $requestObj->status = 'denied';
         $requestObj->save();
-
-        // Admin can comment on reason if you want to store it somewhere
-        $denialComment = $request->input('comment'); 
-        // Either store a "request comment" or attach to documents, up to you
-
-        // Autocreate a new request with `_2` appended to title
+    
+        // Extract base title (remove any existing suffix)
+        preg_match('/^(.*?)(_([0-9]+))?$/', $requestObj->title, $matches);
+        $baseTitle = $matches[1]; // Main title without suffix
+        $suffixNumber = isset($matches[3]) ? intval($matches[3]) + 1 : 2; // Next suffix
+    
+        // Generate new title with the next available suffix
+        $newTitle = "{$baseTitle}_{$suffixNumber}";
+    
+        // Create a new request with updated suffix
         DocumentRequest::create([
             'user_id'    => $requestObj->user_id,
-            'title'      => $requestObj->title.'_2',
+            'title'      => $newTitle,
             'description'=> $requestObj->description,
             'deadline'   => $requestObj->deadline,
             'status'     => 'pending',
         ]);
-
+    
         return redirect()->route('admin.requests.all')
-            ->with('success','Request denied and new request created!');
-    }
+            ->with('success', 'Request denied and a new request was created!');
+    }    
 
 }

@@ -32,6 +32,7 @@ class DocumentRequest extends Model
     // One document request can have many documents uploaded in response.
     public function documents()
     {
-        return $this->hasMany(Document::class);
+        return $this->hasMany(Document::class, 'request_id'); // Match the database column
     }
+    
 }

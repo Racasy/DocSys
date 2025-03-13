@@ -1,18 +1,19 @@
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { defineProps, ref } from 'vue';
-import { Link } from '@inertiajs/vue3';
-import { router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 
 const props = defineProps({
   requests: {
     type: Array,
-    default: () => []
+    default: () => [],
   }
 });
 
 const sort_by = ref('');
 const statusFilter = ref('');
+const showDeleteConfirm = ref(false);
+const deleteRequestId = ref(null);
 
 function filterStatus(status) {
   statusFilter.value = status;
@@ -30,6 +31,21 @@ function fetchData() {
     sort_by: sort_by.value
   }, { preserveState: true, preserveScroll: true });
 }
+
+// Show confirmation modal
+function confirmDelete(requestId) {
+  deleteRequestId.value = requestId;
+  showDeleteConfirm.value = true;
+}
+
+// Delete the request
+function deleteRequest() {
+  router.delete(route('admin.requests.destroy', deleteRequestId.value), {
+    onSuccess: () => {
+      showDeleteConfirm.value = false;
+    }
+  });
+}
 </script>
 
 <template>
@@ -37,8 +53,9 @@ function fetchData() {
     <div class="p-6">
       <h1 class="text-2xl font-bold mb-4">All Requests</h1>
       <Link href="/admin/requests/create" class="bg-brandPurple text-white px-4 py-2">
-          Create New Request
-        </Link>
+        Create New Request
+      </Link>
+
       <!-- Filter buttons -->
       <div class="mb-4 space-x-2">
         <button @click="filterStatus('')" class="bg-gray-300 px-2 py-1">All</button>
@@ -63,12 +80,25 @@ function fetchData() {
             <td class="border px-4 py-2">{{ req.title }}</td>
             <td class="border px-4 py-2">{{ req.user.name }}</td>
             <td class="border px-4 py-2">{{ req.status }}</td>
-            <td class="border px-4 py-2">
+            <td class="border px-4 py-2 space-x-2">
               <Link :href="route('admin.requests.show', req.id)" class="text-blue-500">View</Link>
+              <button @click="confirmDelete(req.id)" class="text-red-500">Delete</button>
             </td>
           </tr>
         </tbody>
       </table>
+
+      <!-- Delete Confirmation Modal -->
+      <div v-if="showDeleteConfirm" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+          <h2 class="text-lg font-semibold mb-4">Are you sure?</h2>
+          <p>This action cannot be undone.</p>
+          <div class="mt-4 space-x-2">
+            <button @click="deleteRequest" class="bg-red-500 text-white px-4 py-2">Delete</button>
+            <button @click="showDeleteConfirm = false" class="bg-gray-300 px-4 py-2">Cancel</button>
+          </div>
+        </div>
+      </div>
     </div>
   </AdminLayout>
 </template>

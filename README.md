@@ -4,3 +4,11 @@ DocSys is an account document upload/archive system.
 Noe.
 ## Colors
  (#EABE6C, #891652, #d4a258, #FFEDD8).
+
+## To-do
+pdfam pievienot lapu: 
+
+
+## Dependencies
+sudo apt install php-imagick
+windows: imagick dll's on C:/php/ext

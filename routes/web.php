@@ -7,7 +7,8 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\DocumentRequestController as AdminRequestController;
 use App\Http\Controllers\User\DocumentRequestController as UserRequestController;
 
-
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Response;
 use Illuminate\Foundation\Application;
 use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Support\Facades\Route;
@@ -27,7 +28,18 @@ Route::middleware('auth')->group(function () {
 
     // Routes for Admin
     Route::middleware([RoleMiddleware::class.':admin'])->group(function () { 
-
+        
+        Route::get('/admin/documents/{filename}', function ($filename) {
+            $path = storage_path("app\\public\\documents\\{$filename}"); // Use double backslashes
+            
+            if (!file_exists($path)) {
+                \Log::error("File not found: " . $path);
+                abort(404, 'File not found.');
+            }
+        
+            return Response::file($path);
+        })->name('admin.documents.view');
+        
         Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])
             ->name('adminDashboard');
 
@@ -40,11 +52,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/requests', [AdminRequestController::class, 'store'])
             ->name('admin.requests.store');
 
-        Route::get('/admin/requests/{requestId}', [AdminRequestController::class, 'show'])
-            ->name('admin.requests.show');
-
         Route::get('/admin/requests/create', [AdminRequestController::class, 'create'])
             ->name('admin.requests.create');
+
+        Route::get('/admin/requests/{requestId}', [AdminRequestController::class, 'show'])
+            ->name('admin.requests.show');
+        
+        Route::delete('/admin/requests/{id}', [AdminRequestController::class, 'destroy'])
+            ->name('admin.requests.destroy');
+        
 
         // Approve or deny
         Route::post('/admin/requests/{requestId}/approve', [AdminRequestController::class, 'approve'])

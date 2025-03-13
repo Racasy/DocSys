@@ -4,44 +4,36 @@ import { defineProps, ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { Link } from '@inertiajs/vue3';
 
 const props = defineProps({
   documentRequest: Object,
 });
 
-// Data for upload form
+// Form for file upload
 const form = useForm({
   comment: '',
-  files: null, // We'll append the actual File objects at submit
+  files: null, // We'll append actual File objects here
 });
 
 const filesInput = ref(null);
 
-function submitForm() {
-  // We need to create a FormData behind the scenes
-  // But `useForm` does that for us if we pass an object or call form.post with formData
-  const data = new FormData();
+// Handle file selection
+function handleFiles(event) {
+  form.files = event.target.files; // Attach selected files to the form
+}
 
-  // Extract files
-  const files = filesInput.value?.files;
-  if (files) {
-    for (let i = 0; i < files.length; i++) {
-      data.append('files[]', files[i]);
-    }
+function submitForm() {
+  if (!form.files || form.files.length === 0) {
+    alert("Please select at least one file.");
+    return;
   }
 
-  data.append('comment', form.comment);
-
-  // Make the request
   form.post(route('user.requests.upload', props.documentRequest.id), {
-    data,
-    forceFormData: true,
-    // We can handle onSuccess, onError, etc. if needed
+    forceFormData: true, // Ensures multipart/form-data
     onSuccess: () => {
-      // Reset the comment or do any UI feedback
-      form.reset('comment');
-      if (filesInput.value) filesInput.value.value = ''; // clear file input
+      // Reset form after success
+      form.reset('comment', 'files');
+      if (filesInput.value) filesInput.value.value = ''; // Clear file input
     },
   });
 }
@@ -55,6 +47,7 @@ function submitForm() {
       <p><strong>Status:</strong> {{ documentRequest.status }}</p>
       <p><strong>Deadline:</strong> {{ documentRequest.deadline }}</p>
 
+      <!-- Uploaded Documents Table -->
       <h2 class="text-xl font-semibold mt-4">Uploaded Documents</h2>
       <table class="min-w-full bg-white mt-2">
         <thead>
@@ -79,7 +72,7 @@ function submitForm() {
         </tbody>
       </table>
 
-      <!-- Upload form -->
+      <!-- Upload Form -->
       <div v-if="documentRequest.status !== 'approved'" class="mt-4">
         <h2 class="text-xl font-semibold">Upload Documents</h2>
         <form @submit.prevent="submitForm" class="mt-4 space-y-4">
@@ -88,6 +81,7 @@ function submitForm() {
               type="file"
               ref="filesInput"
               multiple
+              @change="handleFiles"
               class="mb-2 block"
             />
             <InputError :message="form.errors.files" class="mt-2" />

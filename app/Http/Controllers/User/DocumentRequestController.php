@@ -2,6 +2,12 @@
 
 namespace App\Http\Controllers\User;
 
+use Barryvdh\DomPDF\Facade\Pdf;
+use setasign\Fpdi\Fpdi;
+use setasign\Fpdf\Fpdf;
+use setasign\Fpdi\PdfReader;
+
+use Illuminate\Http\File;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -24,6 +30,7 @@ class DocumentRequestController extends Controller
         ]);
     }
 
+
     // Show a specific request + existing documents
     public function show($requestId)
     {
@@ -37,100 +44,143 @@ class DocumentRequestController extends Controller
         ]);
     }
 
-    // Upload multiple documents + optional comment
     public function upload(Request $request, $requestId)
     {
-        $docRequest = DocumentRequest::where('id',$requestId)
+        $docRequest = DocumentRequest::where('id', $requestId)
             ->where('user_id', Auth::id())
             ->firstOrFail();
-
+    
         $request->validate([
-            'files' => 'required',
-            'files.*' => 'file|max:51200', // e.g. up to 50MB
-            'comment' => 'nullable|string'
+            'files' => 'required|array',
+            'files.*' => 'file|max:51200', // Max 50MB per file
+            'comment' => 'nullable|string',
         ]);
-
+    
         $user = Auth::user();
-
-        // For each uploaded file
+        $uploadedFiles = [];
+    
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
-                // 1) Convert to PDF + append page
-                // We assume you have a helper method to do this
-                $pdfPath = $this->convertFileToPdfWithDisclaimer($file);
-
-                // 2) Generate new filename: {UserName}_{someIncrement}.pdf
-                // If you track user->upload_count, increment that
-                // or do something else to get a unique number
-                $uniqueNumber = time(); // or a DB sequence
-                $finalFileName = $user->name.'_'.$uniqueNumber.'.pdf';
-
-                // 3) Store the final PDF
-                $storedPath = Storage::putFileAs('documents', new \Illuminate\Http\File($pdfPath), $finalFileName);
-
-                // 4) Create a documents entry
+                // Convert file to PDF if necessary
+                $pdfPath = $this->convertFileToPdf($file);
+    
+                // Generate a unique filename
+                $uniqueFileName = time() . '_' . uniqid() . '_' . pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) . '.pdf';
+    
+                // Ensure directory exists
+                $destinationPath = storage_path('app/public/documents');
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0777, true);
+                }
+    
+                // Move PDF to storage manually
+                rename($pdfPath, $destinationPath . '/' . $uniqueFileName);
+    
+                // Store relative path
+                $storedPath = "documents/{$uniqueFileName}";
+    
+                // Save document record in DB
                 $document = Document::create([
                     'user_id' => $user->id,
                     'request_id' => $docRequest->id,
                     'file_path' => $storedPath,
-                    'file_name' => $finalFileName,
-                    'file_size' => filesize($pdfPath),
+                    'file_name' => $uniqueFileName,
+                    'file_size' => filesize($destinationPath . '/' . $uniqueFileName),
                     'status' => 'uploaded',
                     'uploaded_at' => now(),
                 ]);
-
-                // 5) If there's a comment, store it
-                if ($request->comment) {
-                    DocumentComment::create([
-                        'document_id' => $document->id,
-                        'user_id' => $user->id,
-                        'comment' => $request->comment,
-                    ]);
-                }
-
-                // Remove temp $pdfPath if needed
+    
+                $uploadedFiles[] = $document->id;
             }
         }
-
-        // If request was pending, you could set it to in_progress
+    
+        // If request was pending, mark it as in_progress
         if ($docRequest->status === 'pending') {
             $docRequest->status = 'in_progress';
             $docRequest->save();
         }
-
-        return redirect()->back()->with('success','Files uploaded successfully!');
+    
+        return response()->json([
+            'success' => true,
+            'message' => 'Files uploaded successfully!',
+            'uploaded_files' => $uploadedFiles
+        ]);
     }
+    
 
-    /**
-     * Convert the uploaded file to PDF and append a disclaimer page.
-     * Implementation details will vary based on your PDF library or approach.
-     */
-    private function convertFileToPdfWithDisclaimer($file)
+    private function convertFileToPdf($file)
     {
-        // 1) If $file is already PDF, just load it
-        // 2) If not, convert doc/docx/jpg to PDF. Possibly use a library or
-        //    an external service. We'll pseudo-code it here:
+        $extension = strtolower($file->getClientOriginalExtension());
 
-        // Pseudo-code using some imaginary PDF library:
-        /*
-        $tempPath = $file->getPathname(); // original
-        $convertedPdf = SomePdfLibrary::convert($tempPath); 
-        // -> returns a PDF resource
+        if (in_array($extension, ['jpg', 'jpeg', 'png', 'tif', 'heic', 'svg'])) {
+            return $this->convertImageToPdf($file);
+        } elseif (in_array($extension, ['txt', 'csv'])) {
+            return $this->convertTextToPdf($file);
+        } elseif (in_array($extension, ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'ods', 'odp'])) {
+            return $this->convertOfficeToPdf($file);
+        } elseif ($extension === 'pdf') {
+            return $file->getPathname();
+        }
 
-        // Append page
-        $convertedPdf->addPage("THIS DOCUMENT HAS BEEN UPLOADED IN A SAFE WAY AND CAN BE HELD DIGITALLY");
-
-        $outPath = storage_path('app/temp/'.uniqid().'.pdf');
-        $convertedPdf->save($outPath);
-
-        return $outPath;
-        */
-
-        // For demonstration, let's assume we just store the file as-is, 
-        // ignoring actual conversion. In real usage, implement your conversion logic.
-        $outPath = storage_path('app/temp/'.uniqid().'.pdf');
-        file_put_contents($outPath, "PDF Content + Disclaimer (Fake) for demonstration.");
-
-        return $outPath;
+        throw new \Exception("Unsupported file type: {$extension}");
     }
+
+    private function convertTextToPdf($file)
+    {
+        $content = file_get_contents($file->getPathname());
+    
+        $pdf = Pdf::loadHTML("<h1>Converted File</h1><p>{$content}</p>");
+        $pdfPath = storage_path('app/temp/' . uniqid() . '.pdf');
+        $pdf->save($pdfPath);
+    
+        return $pdfPath;
+    }
+
+    private function convertOfficeToPdf($file)
+    {
+        $originalPath = $file->getPathname();
+        $pdfPath = storage_path('app/temp/' . uniqid() . '.pdf');
+    
+        // Run LibreOffice conversion
+        // if linux
+        //shell_exec("libreoffice --headless --convert-to pdf --outdir " . escapeshellarg(dirname($pdfPath)) . " " . escapeshellarg($originalPath));
+        
+        // if windows
+        shell_exec('"C:\\Program Files\\LibreOffice\\program\\soffice.exe" --headless --convert-to pdf --outdir ' . escapeshellarg(dirname($pdfPath)) . ' ' . escapeshellarg($originalPath));
+
+        return file_exists($pdfPath) ? $pdfPath : $originalPath;
+    }
+
+    private function convertImageToPdf($file)
+    {
+        // Move uploaded image to a temporary location
+        $tempImagePath = storage_path('app/temp/' . uniqid() . '.' . $file->getClientOriginalExtension());
+        $file->move(dirname($tempImagePath), basename($tempImagePath)); // Move file
+    
+        // Create a new PDF
+        $pdfPath = storage_path('app/temp/' . uniqid() . '.pdf');
+        $pdf = new Fpdi();
+        $pdf->AddPage();
+    
+        // Get image size
+        list($width, $height) = getimagesize($tempImagePath);
+    
+        // Convert pixel dimensions to points (1px ≈ 0.75 points)
+        $pdfWidth = $width * 0.75;
+        $pdfHeight = $height * 0.75;
+    
+        // Set PDF size based on image dimensions
+        $pdf->SetAutoPageBreak(false);
+        $pdf->Image($tempImagePath, 10, 10, $pdfWidth / 3, $pdfHeight / 3); // Resize to fit
+    
+        $pdf->Output($pdfPath, 'F'); // Save PDF
+    
+        // Delete temp image file
+        unlink($tempImagePath);
+    
+        return $pdfPath;
+    }
+    
+    
+    
 }

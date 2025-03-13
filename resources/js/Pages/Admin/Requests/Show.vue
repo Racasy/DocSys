@@ -32,6 +32,14 @@ function denyRequest() {
     }
   });
 }
+
+// Generate file URL
+function getFileUrl(filePath) {
+  const filename = filePath.split('/').pop(); // Extract only the filename
+  return route('admin.documents.view', filename);
+}
+
+
 </script>
 
 <template>
@@ -49,6 +57,7 @@ function denyRequest() {
           <tr>
             <th class="px-4 py-2">ID</th>
             <th class="px-4 py-2">Filename</th>
+            <th class="px-4 py-2">Actions</th>
             <th class="px-4 py-2">Comments</th>
           </tr>
         </thead>
@@ -56,6 +65,15 @@ function denyRequest() {
           <tr v-for="doc in documentRequest.documents" :key="doc.id">
             <td class="border px-4 py-2">{{ doc.id }}</td>
             <td class="border px-4 py-2">{{ doc.file_name }}</td>
+            <td class="border px-4 py-2">
+              <a
+                :href="getFileUrl(doc.file_path)"
+                target="_blank"
+                class="text-blue-500 hover:underline"
+              >
+                Open File
+              </a>
+            </td>
             <td class="border px-4 py-2">
               <ul>
                 <li v-for="c in doc.comments" :key="c.id">
