@@ -28,18 +28,18 @@ const showingNavigationDropdown = ref(false);
                             Sākums
                         </Link>
                         <Link
+                            :href="route('user.requests.index')"
+                            :class="{'border-b-4 border-[#891652]': route().current('user.requests.index'), 'text-white hover:text-[#d4a258]': !route().current('user.requests.index')}"
+                            class="px-3 py-2 text-sm font-medium"
+                        >
+                            Iesniegumi
+                        </Link>
+                        <Link
                             :href="route('profile.edit')"
                             :class="{'border-b-4 border-[#891652]': route().current('profile.edit'), 'text-white hover:text-[#d4a258]': !route().current('profile.edit')}"
                             class="px-3 py-2 text-sm font-medium"
                         >
                             Profils
-                        </Link>
-                        <Link
-                            :href="route('user.requests.index')"
-                            :class="{'border-b-4 border-[#891652]': route().current('profile.edit'), 'text-white hover:text-[#d4a258]': !route().current('profile.edit')}"
-                            class="px-3 py-2 text-sm font-medium"
-                        >
-                            Index
                         </Link>
                         <Link
                             :href="route('logout')"

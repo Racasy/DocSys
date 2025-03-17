@@ -22,28 +22,28 @@ const showingNavigationDropdown = ref(false);
                     <div class="hidden sm:flex items-center space-x-8">
                         <Link
                             :href="route('adminDashboard')"
-                            :class="{'border-b-4 border-[#891652]': route().current('dashboard'), 'text-white hover:text-[#d4a258]': !route().current('dashboard')}"
+                            :class="{'border-b-4 border-[#891652]': route().current('adminDashboard'), 'text-white hover:text-[#d4a258]': !route().current('adminDashboard')}"
                             class="px-3 py-2 text-sm font-medium"
                         >
                             Sākums
                         </Link>
                         <Link
                             :href="route('admin.requests.all')"
-                            :class="{'border-b-4 border-[#891652]': route().current('profile.edit'), 'text-white hover:text-[#d4a258]': !route().current('profile.edit')}"
+                            :class="{'border-b-4 border-[#891652]': route().current('admin.requests.all'), 'text-white hover:text-[#d4a258]': !route().current('admin.requests.all')}"
                             class="px-3 py-2 text-sm font-medium"
                         >
                             Iesniegumi visi
                         </Link>
                         <Link
                             :href="route('admin.requests.pending')"
-                            :class="{'border-b-4 border-[#891652]': route().current('profile.edit'), 'text-white hover:text-[#d4a258]': !route().current('profile.edit')}"
+                            :class="{'border-b-4 border-[#891652]': route().current('admin.requests.pending'), 'text-white hover:text-[#d4a258]': !route().current('admin.requests.pending')}"
                             class="px-3 py-2 text-sm font-medium"
                         >
                             Iesniegumi procesā
                         </Link> 
                         <Link
                             :href="route('admin.requests.create')"
-                            :class="{'border-b-4 border-[#891652]': route().current('profile.edit'), 'text-white hover:text-[#d4a258]': !route().current('profile.edit')}"
+                            :class="{'border-b-4 border-[#891652]': route().current('admin.requests.create'), 'text-white hover:text-[#d4a258]': !route().current('admin.requests.create')}"
                             class="px-3 py-2 text-sm font-medium"
                         >
                             Izveidot iesniegumu
