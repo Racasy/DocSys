@@ -4,14 +4,19 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 
+use App\Http\Middleware\RoleMiddleware;
+
 use App\Http\Controllers\Admin\DocumentRequestController as AdminRequestController;
 use App\Http\Controllers\User\DocumentRequestController as UserRequestController;
 
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Foundation\Application;
-use App\Http\Middleware\RoleMiddleware;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
+
+use App\Mail\TestMail;
+
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -72,6 +77,11 @@ Route::middleware('auth')->group(function () {
 
     // Routes for User
     Route::middleware([RoleMiddleware::class.':user'])->group(function () { 
+        
+        Route::post('/send-test-email', function () {
+            Mail::to('oto.abrams@gmail.com')->send(new TestMail());
+            return response()->json(['message' => 'Email sent successfully']);
+        });
         
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
