@@ -77,13 +77,20 @@ Route::middleware('auth')->group(function () {
 
     // Routes for User
     Route::middleware([RoleMiddleware::class.':user'])->group(function () { 
-        
+
         Route::post('/send-test-email', function () {
             Mail::to('oto.abrams@gmail.com')->send(new TestMail());
             return response()->json(['message' => 'Email sent successfully']);
         });
         
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/user/documents/{document}/download', [UserRequestController::class, 'download'])
+            ->name('documents.download');
+
+        Route::delete('/user/documents/{document}', [UserRequestController::class, 'destroy'])
+            ->name('user.documents.destroy');
+
 
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

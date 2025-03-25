@@ -44,16 +44,17 @@ return [
             'visibility' => 'public',
             'throw' => false,
         ],
-        'gcs' => [
-            'driver' => 'gcs',
-            'project_id' => env('GCP_PROJECT_ID'),
-            'key_file' => env('GCP_KEY_FILE'), // absolute path to JSON key
-            'bucket' => env('GCS_BUCKET'),
-            'path_prefix' => env('GCS_PATH_PREFIX', null), // optional folder
-            'storage_api_uri' => env('GCS_STORAGE_API_URI', null), // optional
-            'visibility' => 'public', // or 'private'
-        ],
 
+        'gcs' => [
+                'driver' => 'gcs',
+                'project_id' => env('GOOGLE_CLOUD_PROJECT_ID', 'theta-topic-454813-h7'),
+                'key_file_path' => env('GOOGLE_CLOUD_KEY_FILE', storage_path('C:\Users\dakow\Desktop\DocSys\theta-topic-454813-h7-14baf2a959e5.json')),
+                'bucket' => env('GOOGLE_CLOUD_STORAGE_BUCKET', 'test-docsys'),
+                'path_prefix' => null, 
+                'storage_api_uri' => null,
+                //'visibility' => 'private',
+                'visibility_handler' => \League\Flysystem\GoogleCloudStorage\UniformBucketLevelAccessVisibility::class,
+            ],
 
         's3' => [
             'driver' => 's3',

@@ -6,6 +6,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use setasign\Fpdi\Fpdi;
 use setasign\Fpdf\Fpdf;
 use setasign\Fpdi\PdfReader;
+use Google\Cloud\Storage\StorageClient;
 
 use Illuminate\Http\File;
 use App\Http\Controllers\Controller;
@@ -44,69 +45,120 @@ class DocumentRequestController extends Controller
         ]);
     }
 
+    public function destroy($id)
+    {
+        $document = Document::where('id', $id)
+            ->whereHas('documentRequest', fn ($q) => $q->where('user_id', auth()->id()))
+            ->firstOrFail();
+
+        if ($document->documentRequest->status !== 'pending') {
+            abort(403, 'Cannot delete a document unless request is pending.');
+        }
+    
+        // Delete from GCS
+        Storage::disk('gcs')->delete($document->file_path);
+    
+        // Delete from DB
+        $document->delete();
+    
+        return redirect()->back()->with('message', 'Dokuments veiksmīgi izdzēsts.');
+    }
+
     public function upload(Request $request, $requestId)
     {
         $docRequest = DocumentRequest::where('id', $requestId)
             ->where('user_id', Auth::id())
             ->firstOrFail();
-    
+
+        if ($docRequest->status !== 'pending') {
+            abort(403, 'Cannot upload to a request that is not pending.');
+        }
+
         $request->validate([
             'files' => 'required|array',
             'files.*' => 'file|max:51200', // Max 50MB per file
             'comment' => 'nullable|string',
         ]);
-    
+
         $user = Auth::user();
         $uploadedFiles = [];
-    
+
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
-                // Convert file to PDF if necessary
-                $pdfPath = $this->convertFileToPdf($file);
-    
-                // Generate a unique filename
-                $uniqueFileName = time() . '_' . uniqid() . '_' . pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) . '.pdf';
-    
-                // Ensure directory exists
-                $destinationPath = storage_path('app/public/documents');
-                if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0777, true);
+                try {
+                    // Convert file to PDF if necessary
+                    $pdfPath = $this->convertFileToPdf($file);
+
+                    // Generate a unique filename
+                    $uniqueFileName = time() . '_' . uniqid() . '_' . \Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.pdf';
+                    $storedPath = "documents/{$uniqueFileName}"; // Path in GCS bucket
+
+                    // Upload the PDF to GCS using Storage facade
+                    $fileContents = file_get_contents($pdfPath);
+                    \Log::info("Attempting to upload file to GCS: {$storedPath}, size: " . strlen($fileContents) . " bytes");
+
+                    $uploadResult = Storage::disk('gcs')->put($storedPath, $fileContents);
+                    if (!$uploadResult) {
+                        \Log::error("GCS upload returned false for path: {$storedPath}");
+                        throw new \Exception("GCS upload returned false");
+                    }
+
+                    \Log::info("Successfully uploaded file to GCS: {$storedPath}");
+
+                    // Clean up temporary local PDF file
+                    if (file_exists($pdfPath)) {
+                        unlink($pdfPath);
+                    }
+
+                    // Get file size
+                    $fileSize = strlen($fileContents);
+
+                    // Save document record in DB
+                    $document = Document::create([
+                        'user_id' => $user->id,
+                        'request_id' => $docRequest->id,
+                        'file_path' => $storedPath,
+                        'file_name' => $uniqueFileName,
+                        'file_size' => $fileSize,
+                        'status' => 'uploaded',
+                        'uploaded_at' => now(),
+                    ]);
+
+                    $uploadedFiles[] = $document->id;
+                } catch (\Google\Cloud\Core\Exception\GoogleException $e) {
+                    \Log::error("GCS client error: " . $e->getMessage());
+                    return redirect()->back()->with('error', 'Failed to upload file: ' . $e->getMessage());
+                } catch (\Exception $e) {
+                    \Log::error("Unexpected error during GCS upload: " . $e->getMessage());
+                    return redirect()->back()->with('error', 'Failed to upload file: ' . $e->getMessage());
                 }
-    
-                // Move PDF to storage manually
-                rename($pdfPath, $destinationPath . '/' . $uniqueFileName);
-    
-                // Store relative path
-                $storedPath = "documents/{$uniqueFileName}";
-    
-                // Save document record in DB
-                $document = Document::create([
-                    'user_id' => $user->id,
-                    'request_id' => $docRequest->id,
-                    'file_path' => $storedPath,
-                    'file_name' => $uniqueFileName,
-                    'file_size' => filesize($destinationPath . '/' . $uniqueFileName),
-                    'status' => 'uploaded',
-                    'uploaded_at' => now(),
-                ]);
-    
-                $uploadedFiles[] = $document->id;
             }
         }
-    
+
         // If request was pending, mark it as in_progress
         if ($docRequest->status === 'pending') {
             $docRequest->status = 'in_progress';
             $docRequest->save();
         }
-    
-        return response()->json([
-            'success' => true,
-            'message' => 'Files uploaded successfully!',
-            'uploaded_files' => $uploadedFiles
-        ]);
+
+        return redirect()->back()->with('success', 'Files uploaded successfully!');
     }
-    
+
+    public function download(Document $document)
+    {
+        try {
+            // Generate a signed URL for temporary access (e.g., 30 minutes)
+            $url = Storage::disk('gcs')->temporaryUrl($document->file_path, now()->addMinutes(30));
+            return redirect($url);
+        } catch (\Google\Cloud\Core\Exception\GoogleException $e) {
+            \Log::error("Error generating signed URL: " . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to generate file URL: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            \Log::error("Unexpected error generating signed URL: " . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to generate file URL: ' . $e->getMessage());
+        }
+    }
+
 
     private function convertFileToPdf($file)
     {
@@ -116,7 +168,7 @@ class DocumentRequestController extends Controller
             return $this->convertImageToPdf($file);
         } elseif (in_array($extension, ['txt', 'csv'])) {
             return $this->convertTextToPdf($file);
-        } elseif (in_array($extension, ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'ods', 'odp'])) {
+        } elseif (in_array($extension, ['doc', 'docx', 'xls', 'xlsx'])) {
             return $this->convertOfficeToPdf($file);
         } elseif ($extension === 'pdf') {
             return $file->getPathname();
