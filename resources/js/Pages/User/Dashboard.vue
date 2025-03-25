@@ -3,7 +3,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head } from '@inertiajs/vue3';
 
 defineProps({
-    latestRequest: Object // This comes from Laravel
+    latestRequest: Object,
+    stats: Object // Contains user statistics
 });
 
 // Helper function to get status badge styling
@@ -87,23 +88,33 @@ function getStatusClass(status) {
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Action Button 
-                    <div class="flex justify-center">
-                        <a 
-                            :href="latestRequest ? '/user/requests/' + latestRequest.id : '/user/requests'" 
-                            class="w-full sm:w-2/3 flex items-center justify-between px-6 py-4 rounded-lg shadow-md transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            :class="latestRequest ? 'bg-blue-500 hover:bg-blue-600 text-white focus:ring-blue-500' : 'bg-gray-500 hover:bg-gray-600 text-white focus:ring-gray-500'"
-                        >
-                            <span class="font-semibold">{{ latestRequest ? latestRequest.title : 'Skatīt visus' }}</span>
-                            <div class="flex items-center">
-                                <span v-if="latestRequest" class="hidden sm:inline-block mr-4 text-sm text-gray-100">{{ latestRequest.due_date }}</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                        </a>
-                    </div>-->
+                </div>
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Tavu iesniegumu statistika</h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center p-6 bg-gray-100 rounded-lg shadow-md">
+                        <p class="text-3xl font-bold text-gray-800">{{ stats.total }}</p>
+                        <p class="text-gray-600 text-lg">Visi</p>
+                    </div>
+
+                    <div class="text-center p-6 bg-yellow-100 rounded-lg shadow-md">
+                        <p class="text-3xl font-bold text-yellow-800">{{ stats.in_progress + stats.pending}}</p>
+                        <p class="text-gray-600 text-lg">Procesā</p>
+                    </div>
+
+                    <div class="text-center p-6 bg-green-100 rounded-lg shadow-md">
+                        <p class="text-3xl font-bold text-green-800">{{ stats.approved }}</p>
+                        <p class="text-gray-600 text-lg">Apstiprināti</p>
+                    </div>
+
+                    <div class="text-center p-6 bg-red-100 rounded-lg shadow-md">
+                        <p class="text-3xl font-bold text-red-800">{{ stats.denied }}</p>
+                        <p class="text-gray-600 text-lg">Atteikti</p>
+                    </div>
                 </div>
             </div>
         </div>

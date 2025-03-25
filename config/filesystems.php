@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('FILESYSTEM_DISK', 'local'),
+    'default' => env('FILESYSTEM_DISK', 'gcs'),
 
     /*
     |--------------------------------------------------------------------------
@@ -44,6 +44,16 @@ return [
             'visibility' => 'public',
             'throw' => false,
         ],
+        'gcs' => [
+            'driver' => 'gcs',
+            'project_id' => env('GCP_PROJECT_ID'),
+            'key_file' => env('GCP_KEY_FILE'), // absolute path to JSON key
+            'bucket' => env('GCS_BUCKET'),
+            'path_prefix' => env('GCS_PATH_PREFIX', null), // optional folder
+            'storage_api_uri' => env('GCS_STORAGE_API_URI', null), // optional
+            'visibility' => 'public', // or 'private'
+        ],
+
 
         's3' => [
             'driver' => 's3',

@@ -13,9 +13,10 @@ class DashboardController extends Controller
     public function index()
     {
         $userId = Auth::id();
-        
+
         $stats = [
             'total' => UserRequest::where('user_id', $userId)->count(),
+            'pending' => UserRequest::where('user_id', $userId)->where('status', 'pending')->count(),
             'in_progress' => UserRequest::where('user_id', $userId)->where('status', 'in_progress')->count(),
             'approved' => UserRequest::where('user_id', $userId)->where('status', 'approved')->count(),
             'denied' => UserRequest::where('user_id', $userId)->where('status', 'denied')->count(),
