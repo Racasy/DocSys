@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { defineProps, ref } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, Head } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputError from '@/Components/InputError.vue';
 
@@ -26,6 +26,7 @@ function fetchRequests(status) {
 </script>
 
 <template>
+  <Head title="Iesniegumi" />
   <AuthenticatedLayout>
     <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div class="bg-white rounded-lg shadow-md overflow-hidden">
@@ -86,11 +87,18 @@ function fetchRequests(status) {
                   <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" 
                     :class="{
                       'bg-yellow-100 text-yellow-800': req.status === 'pending',
+                      'bg-blue-100 text-blue-800': req.status === 'in_progress',
                       'bg-green-100 text-green-800': req.status === 'approved',
                       'bg-red-100 text-red-800': req.status === 'denied',
-                      'bg-gray-100 text-gray-800': !['pending', 'approved', 'denied'].includes(req.status)
+                      'bg-gray-100 text-gray-800': !['pending', 'in_progress', 'approved', 'denied'].includes(req.status)
                     }">
-                    {{ req.status }}
+                    {{ 
+                      req.status === 'pending' ? 'Nav iesniegts' :
+                      req.status === 'in_progress' ? 'Iesniegts' :
+                      req.status === 'approved' ? 'Apstiprināts' :
+                      req.status === 'denied' ? 'Atteikts' :
+                      req.status
+                    }}
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">

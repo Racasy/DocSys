@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { defineProps, ref } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { useForm, router, Head } from '@inertiajs/vue3';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 
@@ -62,6 +62,7 @@ function getStatusClass(status) {
 </script>
 
 <template>
+  <Head title="Iesniegumi" />
   <AuthenticatedLayout>
     <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
 
