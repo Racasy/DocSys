@@ -95,16 +95,23 @@ function getStatusClass(status) {
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-xl font-semibold text-gray-800 mb-4">Tavu iesniegumu statistika</h3>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+
                     <div class="text-center p-6 bg-gray-100 rounded-lg shadow-md">
                         <p class="text-3xl font-bold text-gray-800">{{ stats.total }}</p>
                         <p class="text-gray-600 text-lg">Visi</p>
                     </div>
 
                     <div class="text-center p-6 bg-yellow-100 rounded-lg shadow-md">
-                        <p class="text-3xl font-bold text-yellow-800">{{ stats.in_progress + stats.pending}}</p>
-                        <p class="text-gray-600 text-lg">Procesā</p>
+                        <p class="text-3xl font-bold text-yellow-800">{{ stats.pending}}</p>
+                        <p class="text-gray-600 text-lg">Nav iesniegti</p>
                     </div>
+
+                    <div class="text-center p-6 bg-blue-100 rounded-lg shadow-md">
+                        <p class="text-3xl font-bold text-blue-800">{{ stats.in_progress }}</p>
+                        <p class="text-gray-600 text-lg">Iesniegti</p>
+                    </div>
+
 
                     <div class="text-center p-6 bg-green-100 rounded-lg shadow-md">
                         <p class="text-3xl font-bold text-green-800">{{ stats.approved }}</p>

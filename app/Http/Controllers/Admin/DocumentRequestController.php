@@ -7,6 +7,11 @@ use Illuminate\Http\Request;
 use App\Models\DocumentRequest;
 use App\Models\User;
 
+use Illuminate\Support\Facades\Storage;
+use setasign\Fpdi\Fpdi;
+use App\Models\Document;
+use App\Models\DocumentStamp;
+
 class DocumentRequestController extends Controller
 {
     // Show only pending requests
@@ -34,6 +39,95 @@ class DocumentRequestController extends Controller
 
         return redirect()->route('admin.requests.all')
             ->with('success', 'Request deleted successfully!');
+    }
+
+    public function download(Document $document)
+    {
+        try {
+            // Generate a signed URL for temporary access (e.g., 30 minutes)
+            $url = Storage::disk('gcs')->temporaryUrl($document->file_path, now()->addMinutes(30));
+            return redirect($url);
+        } catch (\Google\Cloud\Core\Exception\GoogleException $e) {
+            \Log::error("Error generating signed URL: " . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to generate file URL: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            \Log::error("Unexpected error generating signed URL: " . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to generate file URL: ' . $e->getMessage());
+        }
+    }
+
+    public function stampAndReplace(Request $request, $id)
+    {
+        $request->validate([
+            'debit' => 'required|string|max:255',
+            'credit' => 'required|string|max:255',
+            'amount' => 'required|numeric|min:0.01',
+        ]);
+
+        $document = Document::with('stamp')->findOrFail($id);
+        $disk = Storage::disk('gcs');
+        $oldPath = $document->file_path;
+
+        if (!$disk->exists($oldPath)) {
+            return back()->withErrors(['file' => 'Fails nav atrasts mākonī']);
+        }
+
+        // Clean up previous stamped file if exists
+        if ($document->stamp && str_contains($oldPath, 'stamped_')) {
+            $disk->delete($oldPath);
+        }
+
+        // Download original
+        $originalTemp = tempnam(sys_get_temp_dir(), 'orig_') . '.pdf';
+        file_put_contents($originalTemp, $disk->get($oldPath));
+
+        // Stamp PDF
+        $stampedTemp = tempnam(sys_get_temp_dir(), 'stamp_') . '.pdf';
+        $pdf = new \setasign\Fpdi\Fpdi();
+        $pageCount = $pdf->setSourceFile($originalTemp);
+
+        for ($i = 1; $i <= $pageCount; $i++) {
+            $tplId = $pdf->importPage($i);
+            $size = $pdf->getTemplateSize($tplId);
+            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            $pdf->useTemplate($tplId);
+        }
+
+        // Add final page with stamp
+        $pdf->AddPage();
+        $pdf->SetFont('Arial', '', 12);
+        $pdf->Cell(0, 10, 'Digitālais zīmogs', 0, 1);
+        $pdf->Cell(0, 10, 'D: ' . $request->debit, 0, 1);
+        $pdf->Cell(0, 10, 'K: ' . $request->credit, 0, 1);
+        $pdf->Cell(0, 10, 'Summa: ' . $request->amount . ' EUR', 0, 1);
+
+        $pdf->Output($stampedTemp, 'F');
+
+        // Reupload to new GCS path
+        $newPath = 'documents/stamped_' . uniqid() . '.pdf';
+        $disk->put($newPath, fopen($stampedTemp, 'r+'));
+
+        // Save new DB stamp
+        DocumentStamp::updateOrCreate(
+            ['document_id' => $document->id],
+            [
+                'debit_account' => $request->debit,
+                'credit_account' => $request->credit,
+                'amount' => $request->amount,
+                'stamped_by' => auth()->id(),
+                'stamped_at' => now(),
+            ]
+        );
+
+        // Update file path
+        $document->file_path = $newPath;
+        $document->save();
+
+        // Clean temp files
+        unlink($originalTemp);
+        unlink($stampedTemp);
+
+        return back()->with('success', 'Fails veiksmīgi apzīmogots un aizvietots mākonī.');
     }
 
     // Show all requests, with optional filtering

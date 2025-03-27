@@ -1,13 +1,41 @@
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { defineProps, ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, router } from '@inertiajs/vue3';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 
 const props = defineProps({
   documentRequest: Object
 });
+
+const form = ref({})
+const loading = ref({})
+
+props.documentRequest.documents.forEach(doc => {
+  form.value[doc.id] = {
+    debit: doc.stamp?.debit_account || '',
+    credit: doc.stamp?.credit_account || '',
+    amount: doc.stamp?.amount || '',
+    comment: doc.stamp?.comment || '',
+  }
+})
+
+function stampDocument(docId) {
+  loading.value[docId] = true
+
+  router.post(route('admin.documents.stamp', docId), form.value[docId], {
+    preserveScroll: true,
+    onSuccess: () => {
+      alert('Dokuments apzīmogots!')
+      location.reload()
+    },
+    onError: () => alert('Neizdevās apzīmogot dokumentu'),
+    onFinish: () => {
+      loading.value[docId] = false
+    }
+  })
+}
 
 // Approve form (could be an empty form or minimal data)
 const approveForm = useForm({});
@@ -31,12 +59,6 @@ function denyRequest() {
       denyForm.reset('comment');
     }
   });
-}
-
-// Generate file URL
-function getFileUrl(filePath) {
-  const filename = filePath.split('/').pop(); // Extract only the filename
-  return route('admin.documents.view', filename);
 }
 
 // Helper function to get status badge styling
@@ -105,13 +127,18 @@ function getStatusClass(status) {
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ doc.id }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ doc.file_name }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <a
-                    :href="getFileUrl(doc.file_path)"
-                    target="_blank"
-                    class="text-blue-500 hover:underline"
-                  >
-                    Atvērt
-                  </a>
+                  <a :href="route('admin.documents.download', doc.id)" target="_blank" class="text-blue-600 hover:underline">Skatīt</a>
+                </td>
+                <td>
+                  <input v-model="form[doc.id].debit" placeholder="D" class="border px-2 py-1 w-20 rounded" />
+                  <input v-model="form[doc.id].credit" placeholder="K" class="border px-2 py-1 w-20 rounded" />
+                  <input v-model="form[doc.id].amount" placeholder="Summa" class="border px-2 py-1 w-24 rounded" type="number" />
+                  <textarea v-model="form[doc.id].comment" placeholder="Komentārs" class="w-full mt-1 border px-2 py-1 rounded"></textarea>
+
+                  <button @click="stampDocument(doc.id)" :disabled="loading[doc.id]" class="mt-2 px-3 py-1 bg-blue-600 text-white rounded">
+                    <span v-if="loading[doc.id]">Apzīmogo...</span>
+                    <span v-else>Apzīmogot</span>
+                  </button>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-500">
                   <div v-if="doc.comments && doc.comments.length > 0" class="space-y-2">

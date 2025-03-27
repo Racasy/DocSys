@@ -164,7 +164,7 @@ class DocumentRequestController extends Controller
     {
         $extension = strtolower($file->getClientOriginalExtension());
 
-        if (in_array($extension, ['jpg', 'jpeg', 'png', 'tif', 'heic', 'svg'])) {
+        if (in_array($extension, ['jpg', 'jpeg', 'png', 'tif', 'tiff', 'heic', 'jfif'])) {
             return $this->convertImageToPdf($file);
         } elseif (in_array($extension, ['txt', 'csv'])) {
             return $this->convertTextToPdf($file);

@@ -42,4 +42,10 @@ class Document extends Model
     {
         return $this->hasMany(DocumentComment::class);
     }
+
+    public function stamp()
+    {
+        return $this->hasOne(DocumentStamp::class);
+    }
+
 }

@@ -60,11 +60,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/requests/create', [AdminRequestController::class, 'create'])
             ->name('admin.requests.create');
 
+        Route::post('/admin/documents/{id}/stamp', [AdminRequestController::class, 'stampAndReplace'])
+            ->name('admin.documents.stamp');
+
         Route::get('/admin/requests/{requestId}', [AdminRequestController::class, 'show'])
             ->name('admin.requests.show');
         
         Route::delete('/admin/requests/{id}', [AdminRequestController::class, 'destroy'])
             ->name('admin.requests.destroy');
+
+        Route::get('/admin/documents/{document}/download', [AdminRequestController::class, 'download'])
+            ->name('admin.documents.download');
         
 
         // Approve or deny
