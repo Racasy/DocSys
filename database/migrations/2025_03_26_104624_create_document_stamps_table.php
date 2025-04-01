@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('debit_account');
             $table->string('credit_account');
             $table->decimal('amount', 12, 2);
-            $table->text('comment')->nullable();
             $table->timestamp('stamped_at')->nullable();
             $table->foreignId('stamped_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();

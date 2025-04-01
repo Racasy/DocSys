@@ -58,34 +58,41 @@ class DocumentRequestController extends Controller
 
     public function stampAndReplace(Request $request, $id)
     {
+        // Validate input
         $request->validate([
-            'debit' => 'required|string|max:255',
+            'debit'  => 'required|string|max:255',
             'credit' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0.01',
         ]);
 
+        // Retrieve document with its stamp relationship
         $document = Document::with('stamp')->findOrFail($id);
         $disk = Storage::disk('gcs');
-        $oldPath = $document->file_path;
 
-        if (!$disk->exists($oldPath)) {
+        // The original file is located using the file_name (in folder "documents/")
+        $originalPath = 'documents/' . $document->file_name;
+
+        if (!$disk->exists($originalPath)) {
             return back()->withErrors(['file' => 'Fails nav atrasts mākonī']);
         }
 
-        // Clean up previous stamped file if exists
-        if ($document->stamp && str_contains($oldPath, 'stamped_')) {
-            $disk->delete($oldPath);
+        // Define the new stamped file path using the original file_name
+        $stampedPath = 'documents/stamped_' . $document->file_name;
+        // If a stamped version already exists, delete it.
+        if ($disk->exists($stampedPath)) {
+            $disk->delete($stampedPath);
         }
 
-        // Download original
+        // Download the original file to a temporary location
         $originalTemp = tempnam(sys_get_temp_dir(), 'orig_') . '.pdf';
-        file_put_contents($originalTemp, $disk->get($oldPath));
+        file_put_contents($originalTemp, $disk->get($originalPath));
 
-        // Stamp PDF
+        // Prepare a temporary file for the stamped PDF
         $stampedTemp = tempnam(sys_get_temp_dir(), 'stamp_') . '.pdf';
+
+        // Stamp the PDF using FPDI
         $pdf = new \setasign\Fpdi\Fpdi();
         $pageCount = $pdf->setSourceFile($originalTemp);
-
         for ($i = 1; $i <= $pageCount; $i++) {
             $tplId = $pdf->importPage($i);
             $size = $pdf->getTemplateSize($tplId);
@@ -93,7 +100,7 @@ class DocumentRequestController extends Controller
             $pdf->useTemplate($tplId);
         }
 
-        // Add final page with stamp
+        // Append a new page with stamp details
         $pdf->AddPage();
         $pdf->SetFont('Arial', '', 12);
         $pdf->Cell(0, 10, 'Digitālais zīmogs', 0, 1);
@@ -101,34 +108,35 @@ class DocumentRequestController extends Controller
         $pdf->Cell(0, 10, 'K: ' . $request->credit, 0, 1);
         $pdf->Cell(0, 10, 'Summa: ' . $request->amount . ' EUR', 0, 1);
 
+        // Save the stamped PDF to the temporary file
         $pdf->Output($stampedTemp, 'F');
 
-        // Reupload to new GCS path
-        $newPath = 'documents/stamped_' . uniqid() . '.pdf';
-        $disk->put($newPath, fopen($stampedTemp, 'r+'));
+        // Upload the stamped file to GCS under the new path
+        $disk->put($stampedPath, fopen($stampedTemp, 'r+'));
 
-        // Save new DB stamp
+        // Save or update the stamp information in the DB
         DocumentStamp::updateOrCreate(
             ['document_id' => $document->id],
             [
-                'debit_account' => $request->debit,
+                'debit_account'  => $request->debit,
                 'credit_account' => $request->credit,
-                'amount' => $request->amount,
-                'stamped_by' => auth()->id(),
-                'stamped_at' => now(),
+                'amount'         => $request->amount,
+                'stamped_by'     => auth()->id(),
+                'stamped_at'     => now(),
             ]
         );
 
-        // Update file path
-        $document->file_path = $newPath;
+        // Update the document record to now point to the stamped file
+        $document->file_path = $stampedPath;
         $document->save();
 
-        // Clean temp files
+        // Remove temporary files
         unlink($originalTemp);
         unlink($stampedTemp);
 
         return back()->with('success', 'Fails veiksmīgi apzīmogots un aizvietots mākonī.');
     }
+
 
     // Show all requests, with optional filtering
     public function indexAll(Request $request)

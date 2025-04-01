@@ -16,6 +16,7 @@ class DocumentRequest extends Model
         'title',
         'description',
         'deadline',
+        'submitted_at',
         'status',
     ];
 

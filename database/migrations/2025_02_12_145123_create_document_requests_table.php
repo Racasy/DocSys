@@ -15,6 +15,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->dateTime('deadline')->nullable();
             $table->string('status', 50)->default('pending');
+            $table->dateTime('submitted_at')->nullable();
             $table->timestamps();
 
             // Set up the foreign key to users table

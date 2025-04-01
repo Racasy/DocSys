@@ -40,8 +40,18 @@ class DocumentRequestController extends Controller
             ->with('documents.comments.user')
             ->firstOrFail();
 
+        // Use Carbon:
+        $deadline = \Carbon\Carbon::parse($requestObj->deadline);
+        $now = \Carbon\Carbon::now();
+
+        // If you only store date, you might do ->diffInDays($now, false).
+        // false => if the deadline is already past, it returns negative
+        $daysLeft = $now->diffInDays($deadline, false);
+
+        
         return inertia('User/Requests/Show', [
-            'documentRequest' => $requestObj
+            'documentRequest' => $requestObj,
+            'daysLeft'        => $daysLeft,
         ]);
     }
 
@@ -82,20 +92,23 @@ class DocumentRequestController extends Controller
 
         $user = Auth::user();
         $uploadedFiles = [];
+        $failedFiles = [];
+        $uploadedCount = 0;
 
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
                 try {
-                    // Convert file to PDF if necessary
+                    // Convert file to PDF
                     $pdfPath = $this->convertFileToPdf($file);
 
-                    // Generate a unique filename
-                    $uniqueFileName = time() . '_' . uniqid() . '_' . \Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.pdf';
-                    $storedPath = "documents/{$uniqueFileName}"; // Path in GCS bucket
+                    // Generate unique PDF name
+                    $uniqueFileName = time() . '_' . uniqid() . '_' .
+                        \Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.pdf';
+                    $storedPath = "documents/{$uniqueFileName}";
 
-                    // Upload the PDF to GCS using Storage facade
+                    // Upload
                     $fileContents = file_get_contents($pdfPath);
-                    \Log::info("Attempting to upload file to GCS: {$storedPath}, size: " . strlen($fileContents) . " bytes");
+                    \Log::info("Attempting to upload file to GCS: {$storedPath}, size: " . strlen($fileContents));
 
                     $uploadResult = Storage::disk('gcs')->put($storedPath, $fileContents);
                     if (!$uploadResult) {
@@ -103,46 +116,65 @@ class DocumentRequestController extends Controller
                         throw new \Exception("GCS upload returned false");
                     }
 
-                    \Log::info("Successfully uploaded file to GCS: {$storedPath}");
-
-                    // Clean up temporary local PDF file
+                    // Clean up local PDF
                     if (file_exists($pdfPath)) {
                         unlink($pdfPath);
                     }
 
-                    // Get file size
-                    $fileSize = strlen($fileContents);
-
-                    // Save document record in DB
+                    // Save doc record
                     $document = Document::create([
-                        'user_id' => $user->id,
-                        'request_id' => $docRequest->id,
-                        'file_path' => $storedPath,
-                        'file_name' => $uniqueFileName,
-                        'file_size' => $fileSize,
-                        'status' => 'uploaded',
-                        'uploaded_at' => now(),
+                        'user_id'      => $user->id,
+                        'request_id'   => $docRequest->id,
+                        'file_path'    => $storedPath,
+                        'file_name'    => $uniqueFileName,
+                        'file_size'    => strlen($fileContents),
+                        'status'       => 'uploaded',
+                        'uploaded_at'  => now(),
                     ]);
 
                     $uploadedFiles[] = $document->id;
-                } catch (\Google\Cloud\Core\Exception\GoogleException $e) {
-                    \Log::error("GCS client error: " . $e->getMessage());
-                    return redirect()->back()->with('error', 'Failed to upload file: ' . $e->getMessage());
+                    $uploadedCount++;
                 } catch (\Exception $e) {
-                    \Log::error("Unexpected error during GCS upload: " . $e->getMessage());
-                    return redirect()->back()->with('error', 'Failed to upload file: ' . $e->getMessage());
+                    \Log::error("Error uploading file {$file->getClientOriginalName()}: " . $e->getMessage());
+                    // Instead of returning, collect the error
+                    $failedFiles[] = "{$file->getClientOriginalName()} ({$e->getMessage()})";
+                    // continue to next file
+                    continue;
                 }
             }
         }
 
-        // If request was pending, mark it as in_progress
-        if ($docRequest->status === 'pending') {
-            $docRequest->status = 'in_progress';
-            $docRequest->save();
+        // Provide both success and error feedback
+        if (!empty($failedFiles)) {
+            return redirect()->back()->with([
+                'success' => "Successfully uploaded {$uploadedCount} file(s).",
+                'error'   => "Failed on: " . implode(', ', $failedFiles),
+            ]);
+        } else {
+            return redirect()->back()->with('success', "Successfully uploaded {$uploadedCount} file(s).");
         }
-
-        return redirect()->back()->with('success', 'Files uploaded successfully!');
     }
+
+    public function submit($requestId)
+    {
+        $docRequest = DocumentRequest::where('id', $requestId)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+    
+        if ($docRequest->status !== 'pending') {
+            abort(403, 'Request is not pending or is already submitted.');
+        }
+    
+        // Set status to in_progress
+        $docRequest->status = 'in_progress';
+        // Set the submitted date/time
+        $docRequest->submitted_at = now();
+        $docRequest->save();
+    
+        return redirect()->route('user.requests.show', $docRequest->id)
+                         ->with('success', 'Request submitted successfully!');
+    }
+
 
     public function download(Document $document)
     {
@@ -171,6 +203,7 @@ class DocumentRequestController extends Controller
         } elseif (in_array($extension, ['doc', 'docx', 'xls', 'xlsx'])) {
             return $this->convertOfficeToPdf($file);
         } elseif ($extension === 'pdf') {
+            // Return the path as is
             return $file->getPathname();
         }
 
@@ -180,56 +213,128 @@ class DocumentRequestController extends Controller
     private function convertTextToPdf($file)
     {
         $content = file_get_contents($file->getPathname());
-    
-        $pdf = Pdf::loadHTML("<h1>Converted File</h1><p>{$content}</p>");
+        $pdf = Pdf::loadHTML("<h3>Converted File</h3><p>" . nl2br(e($content)) . "</p>");
         $pdfPath = storage_path('app/temp/' . uniqid() . '.pdf');
         $pdf->save($pdfPath);
-    
         return $pdfPath;
     }
 
     private function convertOfficeToPdf($file)
     {
         $originalPath = $file->getPathname();
-        $pdfPath = storage_path('app/temp/' . uniqid() . '.pdf');
-    
-        // Run LibreOffice conversion
-        // if linux
-        //shell_exec("libreoffice --headless --convert-to pdf --outdir " . escapeshellarg(dirname($pdfPath)) . " " . escapeshellarg($originalPath));
-        
-        // if windows
-        shell_exec('"C:\\Program Files\\LibreOffice\\program\\soffice.exe" --headless --convert-to pdf --outdir ' . escapeshellarg(dirname($pdfPath)) . ' ' . escapeshellarg($originalPath));
+        $tempDir = storage_path('app/temp');
+        $uniqueName = uniqid();
+        $pdfPath = $tempDir . '/' . $uniqueName . '.pdf';
 
-        return file_exists($pdfPath) ? $pdfPath : $originalPath;
+        // We'll let LibreOffice produce the PDF with its default naming
+        // Then rename it. Typically it will produce "filename.pdf" from "filename.doc" in $tempDir.
+        $outputBase = pathinfo($originalPath, PATHINFO_FILENAME); // e.g. "file"
+        $potentialOutput = $tempDir . '/' . $outputBase . '.pdf'; // e.g. /tmp/file.pdf
+
+        // On Windows:
+        $cmd = '"C:\\Program Files\\LibreOffice\\program\\soffice.exe" --headless --convert-to pdf --outdir ' 
+             . escapeshellarg($tempDir) . ' ' 
+             . escapeshellarg($originalPath);
+
+        // (On Linux, you'd do something like)
+        // $cmd = 'libreoffice --headless --convert-to pdf --outdir '
+        //     . escapeshellarg($tempDir) . ' '
+        //     . escapeshellarg($originalPath);
+
+        shell_exec($cmd);
+
+        // if the expected output is created
+        if (file_exists($potentialOutput)) {
+            rename($potentialOutput, $pdfPath);
+        }
+
+        // check if final $pdfPath exists
+        if (!file_exists($pdfPath)) {
+            throw new \Exception("LibreOffice failed to convert document to PDF.");
+        }
+
+        return $pdfPath;
     }
 
     private function convertImageToPdf($file)
     {
-        // Move uploaded image to a temporary location
-        $tempImagePath = storage_path('app/temp/' . uniqid() . '.' . $file->getClientOriginalExtension());
-        $file->move(dirname($tempImagePath), basename($tempImagePath)); // Move file
-    
-        // Create a new PDF
-        $pdfPath = storage_path('app/temp/' . uniqid() . '.pdf');
+        // Move the uploaded image to a temp location
+        $ext = strtolower($file->getClientOriginalExtension());
+        $tempDir = storage_path('app/temp');
+        $tempImagePath = $tempDir . '/' . uniqid() . '.' . $ext;
+        $file->move($tempDir, basename($tempImagePath));
+
+        // If the image type is something FPDF can't handle natively (HEIC, TIFF, JFIF),
+        // convert it using Imagick to a standard format like JPG
+
+        $convertible = ['heic','tif','tiff','jfif'];
+        // if (in_array($ext, $convertible)) {
+        //     $imagick = new \Imagick($tempImagePath);
+        //     // If multi-page (TIFF), might need to flatten or handle pages in a loop
+        //     $imagick->setImageFormat('jpg');
+            
+        //     $convertedPath = preg_replace('/\.' . $ext . '$/', '.jpg', $tempImagePath);
+        //     $imagick->writeImage($convertedPath);
+        //     // remove original
+        //     unlink($tempImagePath);
+        //     $tempImagePath = $convertedPath;
+        // }
+
+        if (in_array($ext, $convertible)) {
+            try {
+                $imagick = new \Imagick($tempImagePath);
+                $imagick->setImageFormat('jpg');
+                $convertedPath = preg_replace('/\.' . $ext . '$/', '.jpg', $tempImagePath);
+                $imagick->writeImage($convertedPath);
+                $imagick->clear();
+                $imagick->destroy();
+                unlink($tempImagePath);
+                $tempImagePath = $convertedPath;
+            } catch (\ImagickException $e) {
+                \Log::error("Imagick failed reading HEIC: " . $e->getMessage());
+                // Maybe re-throw or handle gracefully
+                throw $e;
+            }
+        }
+
+        // Now create a PDF from this image
+        $pdfPath = $tempDir . '/' . uniqid() . '.pdf';
+
         $pdf = new Fpdi();
         $pdf->AddPage();
-    
-        // Get image size
+
         list($width, $height) = getimagesize($tempImagePath);
-    
-        // Convert pixel dimensions to points (1px ≈ 0.75 points)
-        $pdfWidth = $width * 0.75;
-        $pdfHeight = $height * 0.75;
-    
-        // Set PDF size based on image dimensions
-        $pdf->SetAutoPageBreak(false);
-        $pdf->Image($tempImagePath, 10, 10, $pdfWidth / 3, $pdfHeight / 3); // Resize to fit
-    
-        $pdf->Output($pdfPath, 'F'); // Save PDF
-    
-        // Delete temp image file
+
+        // Get page dimensions
+        $pageWidth = $pdf->GetPageWidth();
+        $pageHeight = $pdf->GetPageHeight();
+
+        // Scale to fit entire page proportionally
+        $ratioImage = $width / $height;
+        $ratioPage = $pageWidth / $pageHeight;
+
+        $fitWidth = $pageWidth;
+        $fitHeight = $pageHeight;
+
+        // if image is "wider" than page ratio
+        if ($ratioImage > $ratioPage) {
+            // match page width
+            $fitHeight = $pageWidth / $ratioImage;
+        } else {
+            // match page height
+            $fitWidth = $pageHeight * $ratioImage;
+        }
+
+        // Center the image
+        $x = ($pageWidth - $fitWidth) / 2;
+        $y = ($pageHeight - $fitHeight) / 2;
+
+        $pdf->Image($tempImagePath, $x, $y, $fitWidth, $fitHeight);
+        $pdf->Output($pdfPath, 'F');
+
+        // clean up
         unlink($tempImagePath);
-    
+
         return $pdfPath;
     }
     

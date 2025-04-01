@@ -88,7 +88,7 @@ Route::middleware('auth')->group(function () {
             Mail::to('oto.abrams@gmail.com')->send(new TestMail());
             return response()->json(['message' => 'Email sent successfully']);
         });
-        
+
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         Route::get('/user/documents/{document}/download', [UserRequestController::class, 'download'])
@@ -107,6 +107,9 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/user/requests/{requestId}', [UserRequestController::class, 'show'])
             ->name('user.requests.show');
+
+        Route::post('/user/requests/{requestId}/submit', [UserRequestController::class, 'submit'])
+            ->name('user.requests.submit');
 
         Route::post('/user/requests/{requestId}/upload', [UserRequestController::class, 'upload'])
             ->name('user.requests.upload');
