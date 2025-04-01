@@ -43,9 +43,14 @@ class Document extends Model
         return $this->hasMany(DocumentComment::class);
     }
 
-    public function stamp()
+    public function stamps()
     {
-        return $this->hasOne(DocumentStamp::class);
+        return $this->hasMany(DocumentStamp::class);
+    }
+
+    public function hasMaxStamps($maxStamps = 5)
+    {
+        return $this->stamps()->count() >= $maxStamps;
     }
 
 }

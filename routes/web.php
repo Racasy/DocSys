@@ -62,6 +62,9 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/admin/documents/{id}/stamp', [AdminRequestController::class, 'stampAndReplace'])
             ->name('admin.documents.stamp');
+        
+        Route::post('/admin/documents/{id}/edit-stamps', [AdminRequestController::class, 'editStamps'])
+            ->name('documents.edit-stamps');
 
         Route::get('/admin/requests/{requestId}', [AdminRequestController::class, 'show'])
             ->name('admin.requests.show');

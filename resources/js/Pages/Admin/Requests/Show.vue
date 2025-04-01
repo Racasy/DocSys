@@ -1,6 +1,6 @@
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import { defineProps, ref } from 'vue';
+import { defineProps, ref, computed } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -9,35 +9,101 @@ const props = defineProps({
   documentRequest: Object
 });
 
-const form = ref({})
-const loading = ref({})
+const MAX_STAMPS = 5;
 
+// Store current edit mode per document
+const editMode = ref({});
+
+// Form for stamps
+const stampsForm = ref({});
+
+// Initialize forms for each document
 props.documentRequest.documents.forEach(doc => {
-  form.value[doc.id] = {
-    debit: doc.stamp?.debit_account || '',
-    credit: doc.stamp?.credit_account || '',
-    amount: doc.stamp?.amount || '',
-    comment: doc.stamp?.comment || '',
+  // Initialize stamp forms for each document
+  stampsForm.value[doc.id] = {
+    edit_mode: false,
+    stamps: doc.stamps && doc.stamps.length > 0 
+      ? [...doc.stamps.map(s => ({
+          debit: s.debit_account,
+          credit: s.credit_account,
+          amount: s.amount
+        }))]
+      : [{ debit: '', credit: '', amount: '' }]
+  };
+  
+  // Set edit mode state
+  editMode.value[doc.id] = false;
+});
+
+// Loading state for each document
+const loading = ref({});
+
+// Computed property to determine if max stamps reached for a document
+const hasMaxStamps = (docId) => {
+  return stampsForm.value[docId].stamps.length >= MAX_STAMPS;
+};
+
+// Add a new empty stamp to a document
+function addNewStamp(docId) {
+  if (stampsForm.value[docId].stamps.length < MAX_STAMPS) {
+    stampsForm.value[docId].stamps.push({ debit: '', credit: '', amount: '' });
   }
-})
-
-function stampDocument(docId) {
-  loading.value[docId] = true
-
-  router.post(route('admin.documents.stamp', docId), form.value[docId], {
-    preserveScroll: true,
-    onSuccess: () => {
-      alert('Dokuments apzīmogots!')
-      location.reload()
-    },
-    onError: () => alert('Neizdevās apzīmogot dokumentu'),
-    onFinish: () => {
-      loading.value[docId] = false
-    }
-  })
 }
 
-// Approve form (could be an empty form or minimal data)
+// Remove a stamp from a document
+function removeStamp(docId, index) {
+  if (stampsForm.value[docId].stamps.length > 1) {
+    stampsForm.value[docId].stamps.splice(index, 1);
+  }
+}
+
+// Toggle edit mode for a document
+function toggleEditMode(docId) {
+  editMode.value[docId] = !editMode.value[docId];
+  
+  // If switching to edit mode, update the form with current stamps
+  if (editMode.value[docId]) {
+    const doc = props.documentRequest.documents.find(d => d.id === docId);
+    if (doc.stamps && doc.stamps.length > 0) {
+      stampsForm.value[docId].stamps = doc.stamps.map(s => ({
+        debit: s.debit_account,
+        credit: s.credit_account,
+        amount: s.amount
+      }));
+    } else {
+      stampsForm.value[docId].stamps = [{ debit: '', credit: '', amount: '' }];
+    }
+    stampsForm.value[docId].edit_mode = true;
+  } else {
+    stampsForm.value[docId].edit_mode = false;
+  }
+}
+
+// Function to stamp document
+function stampDocument(docId) {
+  loading.value[docId] = true;
+
+  const routeName = editMode.value[docId] 
+    ? 'admin.documents.edit-stamps' 
+    : 'admin.documents.stamp';
+
+  router.post(route(routeName, docId), stampsForm.value[docId], {
+    preserveScroll: true,
+    onSuccess: () => {
+      alert('Dokuments apzīmogots!');
+      location.reload();
+    },
+    onError: (errors) => {
+      console.error(errors);
+      alert('Neizdevās apzīmogot dokumentu');
+    },
+    onFinish: () => {
+      loading.value[docId] = false;
+    }
+  });
+}
+
+// Approve form
 const approveForm = useForm({});
 
 // Deny form, includes a comment field
@@ -99,7 +165,7 @@ function getStatusClass(status) {
               <p class="text-lg font-medium text-gray-900">{{ documentRequest.deadline }}</p>
             </div>
             <div class="bg-gray-50 rounded-md p-4">
-              <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Lietotājs</h3>
+              <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Uzņēmums</h3>
               <p class="text-lg font-medium text-gray-900">{{ documentRequest.user.name }}</p>
             </div>
           </div>
@@ -119,6 +185,7 @@ function getStatusClass(status) {
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nosaukums</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Darbības</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zīmogi</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Komentārs</th>
               </tr>
             </thead>
@@ -129,16 +196,80 @@ function getStatusClass(status) {
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <a :href="route('admin.documents.download', doc.id)" target="_blank" class="text-blue-600 hover:underline">Skatīt</a>
                 </td>
-                <td>
-                  <input v-model="form[doc.id].debit" placeholder="D" class="border px-2 py-1 w-20 rounded" />
-                  <input v-model="form[doc.id].credit" placeholder="K" class="border px-2 py-1 w-20 rounded" />
-                  <input v-model="form[doc.id].amount" placeholder="Summa" class="border px-2 py-1 w-24 rounded" type="number" />
-                  <textarea v-model="form[doc.id].comment" placeholder="Komentārs" class="w-full mt-1 border px-2 py-1 rounded"></textarea>
-
-                  <button @click="stampDocument(doc.id)" :disabled="loading[doc.id]" class="mt-2 px-3 py-1 bg-blue-600 text-white rounded">
-                    <span v-if="loading[doc.id]">Apzīmogo...</span>
-                    <span v-else>Apzīmogot</span>
-                  </button>
+                <td class="px-6 py-4">
+                  <!-- Display existing stamps with edit button -->
+                  <div v-if="doc.stamps && doc.stamps.length > 0 && !editMode[doc.id]">
+                    <div v-for="(stamp, idx) in doc.stamps" :key="idx" class="mb-2 p-2 bg-gray-50 rounded">
+                      <p><strong>Zīmogs #{{ idx + 1 }}</strong></p>
+                      <p>D: {{ stamp.debit_account }}</p>
+                      <p>K: {{ stamp.credit_account }}</p>
+                      <p>Summa: {{ stamp.amount }} EUR</p>
+                    </div>
+                    <button @click="toggleEditMode(doc.id)" class="mt-2 px-3 py-1 bg-yellow-500 text-white rounded">
+                      Rediģēt zīmogus
+                    </button>
+                  </div>
+                  
+                  <!-- Stamp form (either for new stamps or editing existing ones) -->
+                  <div v-else>
+                    <div v-for="(stamp, idx) in stampsForm[doc.id].stamps" :key="idx" class="mb-4 p-3 border rounded bg-gray-50">
+                      <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-medium">Zīmogs #{{ idx + 1 }}</h4>
+                        <button 
+                          v-if="stampsForm[doc.id].stamps.length > 1" 
+                          @click="removeStamp(doc.id, idx)" 
+                          type="button" 
+                          class="text-red-500 hover:text-red-700"
+                        >
+                          Dzēst
+                        </button>
+                      </div>
+                      
+                      <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div>
+                          <label class="block text-sm font-medium text-gray-700 mb-1">Debets</label>
+                          <input v-model="stamp.debit" placeholder="D" class="border px-2 py-1 w-full rounded" />
+                        </div>
+                        <div>
+                          <label class="block text-sm font-medium text-gray-700 mb-1">Kredīts</label>
+                          <input v-model="stamp.credit" placeholder="K" class="border px-2 py-1 w-full rounded" />
+                        </div>
+                        <div>
+                          <label class="block text-sm font-medium text-gray-700 mb-1">Summa</label>
+                          <input v-model="stamp.amount" placeholder="Summa" class="border px-2 py-1 w-full rounded" type="number" step="0.01" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2">
+                      <button 
+                        v-if="!hasMaxStamps(doc.id)" 
+                        @click="addNewStamp(doc.id)" 
+                        type="button"
+                        class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                      >
+                        + Pievienot zīmogu
+                      </button>
+                      
+                      <button 
+                        @click="stampDocument(doc.id)" 
+                        :disabled="loading[doc.id]" 
+                        class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        <span v-if="loading[doc.id]">Apzīmogo...</span>
+                        <span v-else>{{ editMode[doc.id] ? 'Saglabāt zīmogus' : 'Apzīmogot' }}</span>
+                      </button>
+                      
+                      <button 
+                        v-if="editMode[doc.id]" 
+                        @click="toggleEditMode(doc.id)" 
+                        type="button"
+                        class="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
+                      >
+                        Atcelt
+                      </button>
+                    </div>
+                  </div>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-500">
                   <div v-if="doc.comments && doc.comments.length > 0" class="space-y-2">
@@ -151,7 +282,7 @@ function getStatusClass(status) {
                 </td>
               </tr>
               <tr v-if="!documentRequest.documents || documentRequest.documents.length === 0">
-                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
                   Nav nekas augšupielādēts
                 </td>
               </tr>

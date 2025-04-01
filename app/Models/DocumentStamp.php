@@ -11,6 +11,7 @@ class DocumentStamp extends Model
         'debit_account', 
         'credit_account', 
         'amount',
+        'stamp_index',
         'stamped_by', 
         'stamped_at'
     ];
@@ -18,5 +19,10 @@ class DocumentStamp extends Model
     public function document()
     {
         return $this->belongsTo(Document::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'stamped_by');
     }
 }

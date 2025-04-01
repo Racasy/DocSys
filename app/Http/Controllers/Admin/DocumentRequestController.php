@@ -58,15 +58,16 @@ class DocumentRequestController extends Controller
 
     public function stampAndReplace(Request $request, $id)
     {
-        // Validate input
+        // Validate input - since we're receiving an array of stamps
         $request->validate([
-            'debit'  => 'required|string|max:255',
-            'credit' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0.01',
+            'stamps' => 'required|array|min:1|max:5',
+            'stamps.*.debit' => 'required|string|max:255',
+            'stamps.*.credit' => 'required|string|max:255',
+            'stamps.*.amount' => 'required|numeric|min:0.01',
         ]);
 
-        // Retrieve document with its stamp relationship
-        $document = Document::with('stamp')->findOrFail($id);
+        // Retrieve document with its stamps
+        $document = Document::with('stamps')->findOrFail($id);
         $disk = Storage::disk('gcs');
 
         // The original file is located using the file_name (in folder "documents/")
@@ -78,6 +79,7 @@ class DocumentRequestController extends Controller
 
         // Define the new stamped file path using the original file_name
         $stampedPath = 'documents/stamped_' . $document->file_name;
+        
         // If a stamped version already exists, delete it.
         if ($disk->exists($stampedPath)) {
             $disk->delete($stampedPath);
@@ -100,13 +102,19 @@ class DocumentRequestController extends Controller
             $pdf->useTemplate($tplId);
         }
 
-        // Append a new page with stamp details
+        // Append a new page with all stamp details
         $pdf->AddPage();
         $pdf->SetFont('Arial', '', 12);
         $pdf->Cell(0, 10, 'Digitālais zīmogs', 0, 1);
-        $pdf->Cell(0, 10, 'D: ' . $request->debit, 0, 1);
-        $pdf->Cell(0, 10, 'K: ' . $request->credit, 0, 1);
-        $pdf->Cell(0, 10, 'Summa: ' . $request->amount . ' EUR', 0, 1);
+        
+        // Process each stamp in the request
+        foreach ($request->stamps as $index => $stamp) {
+            $pdf->Cell(0, 10, 'Zīmogs #' . ($index + 1), 0, 1);
+            $pdf->Cell(0, 10, 'D: ' . $stamp['debit'], 0, 1);
+            $pdf->Cell(0, 10, 'K: ' . $stamp['credit'], 0, 1);
+            $pdf->Cell(0, 10, 'Summa: ' . $stamp['amount'] . ' EUR', 0, 1);
+            $pdf->Cell(0, 10, '------------------', 0, 1);
+        }
 
         // Save the stamped PDF to the temporary file
         $pdf->Output($stampedTemp, 'F');
@@ -114,17 +122,24 @@ class DocumentRequestController extends Controller
         // Upload the stamped file to GCS under the new path
         $disk->put($stampedPath, fopen($stampedTemp, 'r+'));
 
-        // Save or update the stamp information in the DB
-        DocumentStamp::updateOrCreate(
-            ['document_id' => $document->id],
-            [
-                'debit_account'  => $request->debit,
-                'credit_account' => $request->credit,
-                'amount'         => $request->amount,
-                'stamped_by'     => auth()->id(),
-                'stamped_at'     => now(),
-            ]
-        );
+        // If we're updating all stamps, delete the existing ones
+        if ($request->has('edit_mode') && $request->edit_mode) {
+            $document->stamps()->delete();
+        }
+
+        // Save all stamps to the database
+        $stampStartIndex = $document->stamps()->count();
+        foreach ($request->stamps as $index => $stamp) {
+            DocumentStamp::create([
+                'document_id' => $document->id,
+                'debit_account' => $stamp['debit'],
+                'credit_account' => $stamp['credit'],
+                'amount' => $stamp['amount'],
+                'stamp_index' => $stampStartIndex + $index,
+                'stamped_by' => auth()->id(),
+                'stamped_at' => now(),
+            ]);
+        }
 
         // Update the document record to now point to the stamped file
         $document->file_path = $stampedPath;
@@ -137,6 +152,38 @@ class DocumentRequestController extends Controller
         return back()->with('success', 'Fails veiksmīgi apzīmogots un aizvietots mākonī.');
     }
 
+    public function editStamps(Request $request, $id)
+    {
+        // Validate input - similar to stampAndReplace
+        $request->validate([
+            'stamps' => 'required|array|min:1|max:5',
+            'stamps.*.debit' => 'required|string|max:255',
+            'stamps.*.credit' => 'required|string|max:255',
+            'stamps.*.amount' => 'required|numeric|min:0.01',
+        ]);
+
+        // Get the document
+        $document = Document::findOrFail($id);
+        
+        // Delete existing stamps
+        $document->stamps()->delete();
+        
+        // Create new stamps
+        foreach ($request->stamps as $index => $stamp) {
+            DocumentStamp::create([
+                'document_id' => $document->id,
+                'debit_account' => $stamp['debit'],
+                'credit_account' => $stamp['credit'],
+                'amount' => $stamp['amount'],
+                'stamp_index' => $index,
+                'stamped_by' => auth()->id(),
+                'stamped_at' => now(),
+            ]);
+        }
+        
+        // Re-stamp the document with updated stamps
+        return $this->stampAndReplace($request, $id);
+    }
 
     // Show all requests, with optional filtering
     public function indexAll(Request $request)
@@ -186,7 +233,6 @@ class DocumentRequestController extends Controller
 
     public function create()
     {
-    
         $users = User::where('role', 'user')->get(['id','name','email']);
     
         return inertia('Admin/Requests/Create', [
@@ -197,8 +243,11 @@ class DocumentRequestController extends Controller
     // Show a specific request + its documents
     public function show($requestId)
     {
-        $requestObj = DocumentRequest::with(['documents.comments.user','user'])
-            ->findOrFail($requestId);
+        $requestObj = DocumentRequest::with([
+            'documents.comments.user',
+            'documents.stamps',
+            'user'
+        ])->findOrFail($requestId);
 
         return inertia('Admin/Requests/Show', [
             'documentRequest' => $requestObj
@@ -246,5 +295,4 @@ class DocumentRequestController extends Controller
         return redirect()->route('admin.requests.all')
             ->with('success', 'Request denied and a new request was created!');
     }    
-
 }

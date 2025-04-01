@@ -17,9 +17,12 @@ return new class extends Migration
             $table->string('debit_account');
             $table->string('credit_account');
             $table->decimal('amount', 12, 2);
+            $table->integer('stamp_index')->default(0);
             $table->timestamp('stamped_at')->nullable();
             $table->foreignId('stamped_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
+
+            $table->unique(['document_id', 'stamp_index']);
         });
     }
 
