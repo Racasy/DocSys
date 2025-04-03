@@ -186,7 +186,6 @@ function getStatusClass(status) {
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nosaukums</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Darbības</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zīmogi</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Komentārs</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -270,15 +269,6 @@ function getStatusClass(status) {
                       </button>
                     </div>
                   </div>
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-500">
-                  <div v-if="doc.comments && doc.comments.length > 0" class="space-y-2">
-                    <div v-for="c in doc.comments" :key="c.id" class="bg-gray-50 rounded-md p-2">
-                      <p class="font-medium text-gray-700">{{ c.user.name }}</p>
-                      <p class="text-gray-600">{{ c.comment }}</p>
-                    </div>
-                  </div>
-                  <p v-else class="text-gray-400 italic">Nav komentārs</p>
                 </td>
               </tr>
               <tr v-if="!documentRequest.documents || documentRequest.documents.length === 0">
