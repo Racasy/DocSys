@@ -20,7 +20,7 @@ class RoleMiddleware
     {
         // Check if the user is authenticated
         if (!Auth::check()) {
-            return redirect('/login'); // Redirect to login if not authenticated
+            return redirect('/'); // Redirect to login if not authenticated
         }
 
         // Get the authenticated user's role

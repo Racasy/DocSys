@@ -1,5 +1,5 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
 const isDarkMode = ref(false);
@@ -86,7 +86,7 @@ const submit = () => {
                                 :class="['w-full p-2 rounded border transition-colors duration-200',
                                     isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-[#FFEDD8] border-[#d4a258] text-[#891652]']"
                             />
-                            <a href="#" class="text-[#891652] hover:text-[#d4a258] text-sm mt-1 block transition-colors">
+                            <a :href="route('password.request')" class="text-[#891652] hover:text-[#d4a258] text-sm mt-1 block transition-colors">
                                 Aizmirsi paroli?
                             </a>
                         </div>

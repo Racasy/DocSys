@@ -27,6 +27,21 @@ class DocumentRequestController extends Controller
         ]);
     }
 
+    public function indexByYear(User $user, $year)
+    {
+        $requests = DocumentRequest::where('user_id', $user->id)
+            ->whereYear('created_at', $year)
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return inertia('Admin/Requests/ByYear', [
+            'requests' => $requests,
+            'user' => $user,
+            'year' => $year
+        ]);
+    }
+
     public function destroy($requestId)
     {
         $requestObj = DocumentRequest::findOrFail($requestId);

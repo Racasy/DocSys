@@ -9,6 +9,9 @@ use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\Admin\DocumentRequestController as AdminRequestController;
 use App\Http\Controllers\User\DocumentRequestController as UserRequestController;
 
+
+use App\Http\Controllers\Admin\UserController;
+
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Foundation\Application;
@@ -35,7 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware([RoleMiddleware::class.':admin'])->group(function () { 
         
         Route::get('/admin/documents/{filename}', function ($filename) {
-            $path = storage_path("app\\public\\documents\\{$filename}"); // Use double backslashes
+            $path = storage_path("app\\public\\documents\\{$filename}"); 
             
             if (!file_exists($path)) {
                 \Log::error("File not found: " . $path);
@@ -45,6 +48,13 @@ Route::middleware('auth')->group(function () {
             return Response::file($path);
         })->name('admin.documents.view');
         
+        Route::get('/admin/users', [UserController::class, 'index'])
+            ->name('admin.users.index');
+        Route::get('/admin/users/{user}/years', [UserController::class, 'years'])
+            ->name('admin.users.years');
+        Route::get('/admin/users/{user}/years/{year}/requests', [AdminRequestController::class, 'indexByYear'])
+            ->name('admin.users.years.requests');
+
         Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])
             ->name('adminDashboard');
 
