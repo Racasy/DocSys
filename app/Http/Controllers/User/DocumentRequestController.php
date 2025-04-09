@@ -31,7 +31,6 @@ class DocumentRequestController extends Controller
         ]);
     }
 
-
     // Show a specific request + existing documents
     public function show($requestId)
     {

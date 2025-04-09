@@ -55,6 +55,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/users/{user}/years/{year}/requests', [AdminRequestController::class, 'indexByYear'])
             ->name('admin.users.years.requests');
 
+        Route::get('/admin/users/create', [UserController::class, 'create'])
+            ->name('admin.users.create');
+        Route::post('/admin/users/create', [UserController::class, 'create'])
+            ->name('admin.users.store');
+
         Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])
             ->name('adminDashboard');
 

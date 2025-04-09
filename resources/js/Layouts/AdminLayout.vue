@@ -328,6 +328,13 @@
   const sidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === 'true');
   const isMobile = ref(window.innerWidth < 768);
   const showMobileMenu = ref(false);
+
+  defineProps({
+    auth: {
+        type: Object,
+        default: () => ({ user: null }),
+    },
+  });
   
   // Save sidebar state to localStorage
   watch(sidebarCollapsed, (newVal) => {

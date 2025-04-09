@@ -8,6 +8,10 @@ use App\Models\DocumentRequest;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use App\Mail\WelcomeEmail;
+
 class UserController extends Controller
 {
     public function index(Request $request)
@@ -77,5 +81,32 @@ class UserController extends Controller
             'user' => $userData,
             'years' => $years,
         ]);
+    }
+
+    public function create(Request $request)
+    {
+        if ($request->isMethod('post')) {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+            ]);
+
+            $temporaryPassword = Str::random(12);
+
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($temporaryPassword),
+                'role' => 'user',
+            ]);
+
+            // Send welcome email using the Mailable
+            \Mail::to($user->email)->send(new WelcomeEmail($user, $temporaryPassword));
+
+            return redirect()->route('admin.users.index')
+                ->with('success', 'Uzņēmums veiksmīgi izveidots, un sveiciena e-pasts nosūtīts.');
+        }
+
+        return Inertia::render('Admin/Requests/CreateUser');
     }
 }
