@@ -10,10 +10,13 @@ const props = defineProps({
   daysLeft: Number,
 });
 
-// This form is only for uploading files (not final submission).
 const uploadForm = useForm({
   comment: '',
   files: null,
+});
+
+const commentForm = useForm({
+  comment: '',
 });
 
 const filesInput = ref(null);
@@ -22,7 +25,6 @@ function handleFiles(event) {
   uploadForm.files = event.target.files;
 }
 
-// Upload the selected files
 function uploadFiles() {
   if (!uploadForm.files || uploadForm.files.length === 0) {
     alert("Lūdzu, izvēlies vismaz vienu failu.");
@@ -38,7 +40,13 @@ function uploadFiles() {
   });
 }
 
-// Delete a document by ID
+function submitComment() {
+  commentForm.post(route('user.requests.comment', props.documentRequest.id), {
+    preserveScroll: true,
+    onSuccess: () => commentForm.reset('comment'),
+  });
+}
+
 function deleteDoc(id) {
   if (!confirm('Vai tiešām vēlies dzēst šo dokumentu?')) return;
 
@@ -48,7 +56,6 @@ function deleteDoc(id) {
   });
 }
 
-// Assign background classes based on request status
 function getStatusClass(status) {
   switch(status) {
     case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -63,7 +70,6 @@ function getStatusClass(status) {
   <Head title="Iesniegumi" />
   <AuthenticatedLayout>
     <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-
       <!-- Request Info Card -->
       <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
         <div class="px-6 py-5 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
@@ -87,8 +93,6 @@ function getStatusClass(status) {
                 {{ documentRequest.title }}
               </p>
             </div>
-
-            <!-- Deadline + Days Left -->
             <div class="bg-gray-50 rounded-md p-4">
               <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">
                 Termiņš
@@ -99,8 +103,6 @@ function getStatusClass(status) {
               </p>
             </div>
           </div>
-
-          <!-- Show the submitted date/time if available -->
           <div v-if="documentRequest.submitted_at" class="bg-gray-50 rounded-md p-4">
             <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">
               Iesniegts
@@ -125,7 +127,6 @@ function getStatusClass(status) {
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nosaukums</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Komentārs</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Darbības</th>
               </tr>
             </thead>
@@ -140,19 +141,6 @@ function getStatusClass(status) {
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-500">
                   {{ doc.file_name }}
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-500">
-                  <div v-if="doc.comments?.length" class="space-y-2">
-                    <div
-                      v-for="c in doc.comments"
-                      :key="c.id"
-                      class="bg-gray-50 rounded-md p-2"
-                    >
-                      <p class="font-medium text-gray-700">{{ c.user.name }}</p>
-                      <p class="text-gray-600">{{ c.comment }}</p>
-                    </div>
-                  </div>
-                  <p v-else class="text-gray-400 italic">Nav komentāru</p>
                 </td>
                 <td class="px-6 py-4 text-sm">
                   <a
@@ -172,12 +160,54 @@ function getStatusClass(status) {
                 </td>
               </tr>
               <tr v-if="!documentRequest.documents?.length">
-                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">
                   Nekas nav augšupielādēts
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Comments Section -->
+      <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+        <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
+          <h2 class="text-xl font-semibold text-gray-800">Komentāri</h2>
+        </div>
+        <div class="p-6 space-y-4">
+          <div v-if="documentRequest.comments?.length" class="space-y-4">
+            <div
+              v-for="comment in documentRequest.comments"
+              :key="comment.id"
+              class="bg-gray-50 rounded-md p-4"
+            >
+              <p class="font-medium text-gray-700">{{ comment.user.name }}</p>
+              <p class="text-gray-600">{{ comment.comment }}</p>
+              <p class="text-xs text-gray-400">{{ comment.created_at }}</p>
+            </div>
+          </div>
+          <p v-else class="text-gray-500 italic">Nav komentāru</p>
+
+          <!-- Comment Form -->
+          <form @submit.prevent="submitComment" class="space-y-4">
+            <div>
+              <label for="comment" class="block text-sm font-medium text-gray-700 mb-2">
+                Pievienot komentāru
+              </label>
+              <textarea
+                id="comment"
+                v-model="commentForm.comment"
+                rows="3"
+                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                placeholder="Raksti savu komentāru šeit"
+              ></textarea>
+              <InputError :message="commentForm.errors.comment" class="mt-2" />
+            </div>
+            <PrimaryButton :disabled="commentForm.processing">
+              <span v-if="commentForm.processing">Notiek...</span>
+              <span v-else>Pievienot</span>
+            </PrimaryButton>
+          </form>
         </div>
       </div>
 
@@ -224,21 +254,6 @@ function getStatusClass(status) {
               </div>
               <InputError :message="uploadForm.errors?.[0]?.message" class="mt-2" />
             </div>
-
-            <div>
-              <label for="comment" class="block text-sm font-medium text-gray-700 mb-2">
-                Komentārs (pēc izvēles)
-              </label>
-              <textarea
-                id="comment"
-                v-model="uploadForm.comment"
-                rows="3"
-                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                placeholder="Pievieno komentāru vai paskaidrojumu"
-              ></textarea>
-              <InputError :message="uploadForm.errors.comment" class="mt-2" />
-            </div>
-
             <div>
               <PrimaryButton :disabled="uploadForm.processing" class="w-full sm:w-auto">
                 <span v-if="uploadForm.processing" class="flex items-center">
@@ -276,9 +291,7 @@ function getStatusClass(status) {
         v-if="documentRequest.status === 'pending' && documentRequest.documents?.length"
         class="mt-6 flex"
       >
-        <!-- You can do a standard HTML form that posts to the submit route -->
         <form :action="route('user.requests.submit', documentRequest.id)" method="POST">
-          <!-- For Inertia forms, you usually need a CSRF token -->
           <PrimaryButton
             @click.prevent="() => router.post(route('user.requests.submit', documentRequest.id))"
           >

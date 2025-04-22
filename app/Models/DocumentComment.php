@@ -9,25 +9,17 @@ class DocumentComment extends Model
 {
     use HasFactory;
 
-    // protected $table = 'document_comments';
-
     protected $fillable = [
-        'document_id',
+        'document_request_id', // Updated field name
         'user_id',
         'comment',
     ];
 
-    /**
-     * Relationships
-     */
-
-    // A comment is attached to a single document.
-    public function document()
+    public function documentRequest() // Updated relationship
     {
-        return $this->belongsTo(Document::class);
+        return $this->belongsTo(DocumentRequest::class, 'document_request_id');
     }
 
-    // The user (client or accountant) who posted the comment.
     public function user()
     {
         return $this->belongsTo(User::class);

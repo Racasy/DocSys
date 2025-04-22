@@ -27,18 +27,50 @@ class DocumentRequestController extends Controller
         ]);
     }
 
-    public function indexByYear(User $user, $year)
+    public function indexByYear(User $user, $year, Request $request)
     {
         $requests = DocumentRequest::where('user_id', $user->id)
-            ->whereYear('created_at', $year)
-            ->with('user')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
+            ->whereYear('created_at', $year);
+    
+        // Apply status filter
+        if ($status = $request->input('status')) {
+            $requests->where('status', $status);
+        }
+    
+        // Apply sorting
+        if ($sort = $request->input('sort_by')) {
+            $requests->orderBy($sort, 'asc');
+        } else {
+            $requests->orderBy('created_at', 'desc');
+        }
+    
         return inertia('Admin/Requests/ByYear', [
-            'requests' => $requests,
+            'requests' => $requests->get(),
             'user' => $user,
             'year' => $year
+        ]);
+    }
+
+    public function indexAll(Request $request)
+    {
+        $query = DocumentRequest::with('user');
+
+        // Filter by status if provided
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
+        }
+
+        // Sort if provided
+        if ($sort = $request->input('sort_by')) {
+            $query->orderBy($sort, 'asc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $requests = $query->get();
+
+        return inertia('Admin/Requests/All', [
+            'requests' => $requests
         ]);
     }
 
@@ -198,30 +230,6 @@ class DocumentRequestController extends Controller
         
         // Re-stamp the document with updated stamps
         return $this->stampAndReplace($request, $id);
-    }
-
-    // Show all requests, with optional filtering
-    public function indexAll(Request $request)
-    {
-        $query = DocumentRequest::with('user');
-
-        // Filter by status if provided
-        if ($status = $request->input('status')) {
-            $query->where('status', $status);
-        }
-
-        // Sort if provided
-        if ($sort = $request->input('sort_by')) {
-            $query->orderBy($sort, 'asc');
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
-
-        $requests = $query->get();
-
-        return inertia('Admin/Requests/All', [
-            'requests' => $requests
-        ]);
     }
 
     // Create a new request for a user

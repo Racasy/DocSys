@@ -34,24 +34,38 @@ class DocumentRequestController extends Controller
     // Show a specific request + existing documents
     public function show($requestId)
     {
-        $requestObj = DocumentRequest::where('id',$requestId)
+        $requestObj = DocumentRequest::where('id', $requestId)
             ->where('user_id', Auth::id())
-            ->with('documents.comments.user')
+            ->with('documents', 'comments.user') // Load comments with user info
             ->firstOrFail();
 
-        // Use Carbon:
         $deadline = \Carbon\Carbon::parse($requestObj->deadline);
         $now = \Carbon\Carbon::now();
-
-        // If you only store date, you might do ->diffInDays($now, false).
-        // false => if the deadline is already past, it returns negative
         $daysLeft = $now->diffInDays($deadline, false);
 
-        
         return inertia('User/Requests/Show', [
             'documentRequest' => $requestObj,
             'daysLeft'        => $daysLeft,
         ]);
+    }
+
+    public function storeComment(Request $request, $requestId)
+    {
+        $docRequest = DocumentRequest::where('id', $requestId)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
+        $request->validate([
+            'comment' => 'required|string|max:1000',
+        ]);
+
+        DocumentComment::create([
+            'document_request_id' => $docRequest->id,
+            'user_id' => Auth::id(),
+            'comment' => $request->comment,
+        ]);
+
+        return redirect()->back()->with('success', 'Comment added successfully!');
     }
 
     public function destroy($id)

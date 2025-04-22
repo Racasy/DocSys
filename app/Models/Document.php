@@ -9,8 +9,6 @@ class Document extends Model
 {
     use HasFactory;
 
-    // protected $table = 'documents';
-
     protected $fillable = [
         'user_id',
         'request_id',
@@ -21,26 +19,14 @@ class Document extends Model
         'uploaded_at',
     ];
 
-    /**
-     * Relationships
-     */
-
-    // The user (client) who uploaded this document.
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // The specific document request this file is fulfilling.
     public function documentRequest()
     {
         return $this->belongsTo(DocumentRequest::class, 'request_id');
-    }
-
-    // A document can have many comments (feedback from accountants/clients).
-    public function comments()
-    {
-        return $this->hasMany(DocumentComment::class);
     }
 
     public function stamps()
@@ -53,4 +39,8 @@ class Document extends Model
         return $this->stamps()->count() >= $maxStamps;
     }
 
+    public function comments()
+    {
+        return $this->hasMany(DocumentComment::class);
+    }
 }

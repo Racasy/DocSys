@@ -388,7 +388,7 @@
   }
   
   .animate-blob {
-    animation: blob 7s infinite;
+    animation: blob 10s infinite;
   }
   
   .animation-delay-2000 {

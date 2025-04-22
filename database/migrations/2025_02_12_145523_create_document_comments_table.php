@@ -10,13 +10,13 @@ return new class extends Migration
     {
         Schema::create('document_comments', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('document_id');
+            $table->unsignedBigInteger('document_request_id'); // Changed to reference document_requests
             $table->unsignedBigInteger('user_id');
             $table->text('comment');
-            $table->timestamps(); // created_at, updated_at
+            $table->timestamps();
 
-            $table->foreign('document_id')
-                  ->references('id')->on('documents')
+            $table->foreign('document_request_id')
+                  ->references('id')->on('document_requests')
                   ->onDelete('cascade');
 
             $table->foreign('user_id')

@@ -9,8 +9,6 @@ class DocumentRequest extends Model
 {
     use HasFactory;
 
-    // protected $table = 'document_requests'; // By default, Laravel will use the pluralized model name, so it's optional
-
     protected $fillable = [
         'user_id',
         'title',
@@ -20,20 +18,18 @@ class DocumentRequest extends Model
         'status',
     ];
 
-    /**
-     * Relationships
-     */
-
-    // This request belongs to one user (the client).
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // One document request can have many documents uploaded in response.
     public function documents()
     {
-        return $this->hasMany(Document::class, 'request_id'); // Match the database column
+        return $this->hasMany(Document::class, 'request_id');
     }
-    
+
+    public function comments() // New relationship
+    {
+        return $this->hasMany(DocumentComment::class, 'document_request_id');
+    }
 }

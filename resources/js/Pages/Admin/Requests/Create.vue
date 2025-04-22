@@ -83,7 +83,7 @@ function submitRequest() {
             </div>
 
             <div>
-              <label for="deadline" class="block text-sm font-medium text-gray-700 mb-2">Deadline (optional)</label>
+              <label for="deadline" class="block text-sm font-medium text-gray-700 mb-2">Termmiņš</label>
               <input
                 type="date"
                 id="deadline"

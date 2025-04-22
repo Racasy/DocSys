@@ -131,8 +131,11 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/user/requests/{requestId}/upload', [UserRequestController::class, 'upload'])
             ->name('user.requests.upload');
-        
-    
+
+        Route::post('/requests/{requestId}/comment', [UserRequestController::class, 'storeComment'])
+            ->name('user.requests.comment');
+
+
     });
 });
 
