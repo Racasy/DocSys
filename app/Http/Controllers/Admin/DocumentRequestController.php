@@ -12,6 +12,10 @@ use setasign\Fpdi\Fpdi;
 use App\Models\Document;
 use App\Models\DocumentStamp;
 
+use App\Mail\DeniedRequestEmail;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
+
 class DocumentRequestController extends Controller
 {
     // Show only pending requests
@@ -267,7 +271,6 @@ class DocumentRequestController extends Controller
     public function show($requestId)
     {
         $requestObj = DocumentRequest::with([
-            'documents.comments.user',
             'documents.stamps',
             'user'
         ])->findOrFail($requestId);
@@ -294,28 +297,53 @@ class DocumentRequestController extends Controller
     // Deny the request
     public function deny(Request $request, $requestId)
     {
-        $requestObj = DocumentRequest::findOrFail($requestId);
-        $requestObj->status = 'denied';
-        $requestObj->save();
+        $request->validate(['reason' => 'required|string']);
     
-        // Extract base title (remove any existing suffix)
-        preg_match('/^(.*?)(_([0-9]+))?$/', $requestObj->title, $matches);
-        $baseTitle = $matches[1]; // Main title without suffix
-        $suffixNumber = isset($matches[3]) ? intval($matches[3]) + 1 : 2; // Next suffix
+        try {
+            DB::beginTransaction();
     
-        // Generate new title with the next available suffix
-        $newTitle = "{$baseTitle}_{$suffixNumber}";
+            $requestObj = DocumentRequest::findOrFail($requestId);
+            $requestObj->status = 'denied';
+            $requestObj->save();
     
-        // Create a new request with updated suffix
-        DocumentRequest::create([
-            'user_id'    => $requestObj->user_id,
-            'title'      => $newTitle,
-            'description'=> $requestObj->description,
-            'deadline'   => $requestObj->deadline,
-            'status'     => 'pending',
-        ]);
+            // Send email
+            Mail::to($requestObj->user->email)->send(
+                new DeniedRequestEmail(
+                    $requestObj->user,
+                    $requestObj->title,
+                    $request->reason
+                )
+            );
     
-        return redirect()->route('admin.requests.all')
-            ->with('success', 'Request denied and a new request was created!');
-    }    
+            // Create new request (optional)
+            $newTitle = $this->generateNewTitle($requestObj->title);
+            DocumentRequest::create([
+                'user_id' => $requestObj->user_id,
+                'title' => $newTitle,
+                'description' => $requestObj->description,
+                'deadline' => $requestObj->deadline,
+                'status' => 'pending',
+            ]);
+    
+            DB::commit();
+    
+            return redirect()->route('admin.requests.all')
+                ->with('success', 'Request denied and new one created!');
+    
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error("Deny Request Failed: " . $e->getMessage());
+            return back()->withErrors(['error' => 'Kļūda noraidot pieprasījumu!']);
+        }
+    }
+    
+    private function generateNewTitle($originalTitle)
+    {
+        if (preg_match('/^(.*?)(_(\d+))?$/', $originalTitle, $matches)) {
+            $base = $matches[1];
+            $suffix = isset($matches[3]) ? (int)$matches[3] + 1 : 2;
+            return "{$base}_{$suffix}";
+        }
+        return "{$originalTitle}_2";
+    }
 }

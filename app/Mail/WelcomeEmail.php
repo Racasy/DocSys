@@ -22,6 +22,6 @@ class WelcomeEmail extends Mailable
     public function build()
     {
         return $this->view('emails.welcome')
-                    ->subject('Laipni lūdzam Abrams DocSys - Jūsu pieteikšanās dati');
+                    ->subject('Laipni lūdzam DocSys - Jūsu pieteikšanās dati');
     }
 }

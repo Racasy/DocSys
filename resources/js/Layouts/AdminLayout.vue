@@ -170,6 +170,7 @@
                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
+            
             <span
               :class="{ 'opacity-0 w-0': sidebarCollapsed && !isMobile, 'ml-3': !sidebarCollapsed || isMobile }"
               class="transition-all duration-300"
@@ -213,6 +214,33 @@
               class="absolute left-full rounded-md px-2 py-1 ml-6 bg-purple-100 text-sm text-[#891652] invisible opacity-0 -translate-x-3 group-hover:visible group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
             >
               Izveidot iesniegumu
+            </span>
+          </Link>
+          <Link
+            :href="route('admin.users.create')"
+            :class="{
+              'bg-purple-100 text-[#891652] border-l-4 border-[#891652]': route().current('admin.users.create'),
+              'hover:bg-purple-50 hover:text-[#891652]': !route().current('admin.users.create'),
+              'justify-center': sidebarCollapsed && !isMobile,
+              'justify-start': !sidebarCollapsed || isMobile,
+            }"
+            class="flex items-center px-4 py-3 text-gray-700 rounded-lg transition-colors group"
+          >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
+          </svg>
+
+            <span
+              :class="{ 'opacity-0 w-0': sidebarCollapsed && !isMobile, 'ml-3': !sidebarCollapsed || isMobile }"
+              class="transition-all duration-300"
+            >
+              Izveidot lietotāju
+            </span>
+            <span
+              v-if="sidebarCollapsed && !isMobile"
+              class="absolute left-full rounded-md px-2 py-1 ml-6 bg-purple-100 text-sm text-[#891652] invisible opacity-0 -translate-x-3 group-hover:visible group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
+            >
+              Izveidot lietotāju
             </span>
           </Link>
         </nav>
