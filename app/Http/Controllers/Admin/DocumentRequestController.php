@@ -4,13 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\DocumentRequest;
 use App\Models\User;
 
 use Illuminate\Support\Facades\Storage;
 use setasign\Fpdi\Fpdi;
+
 use App\Models\Document;
 use App\Models\DocumentStamp;
+use App\Models\DocumentRequest;
+use App\Models\DocumentComment;
 
 use App\Mail\DeniedRequestEmail;
 use Illuminate\Support\Facades\Mail;
@@ -272,12 +274,30 @@ class DocumentRequestController extends Controller
     {
         $requestObj = DocumentRequest::with([
             'documents.stamps',
-            'user'
+            'user',
+            'comments.user'
         ])->findOrFail($requestId);
 
         return inertia('Admin/Requests/Show', [
             'documentRequest' => $requestObj
         ]);
+    }
+
+    public function storeComment(Request $request, $requestId)
+    {
+        $docRequest = DocumentRequest::findOrFail($requestId);
+
+        $request->validate([
+            'comment' => 'required|string|max:1000',
+        ]);
+
+        DocumentComment::create([
+            'document_request_id' => $docRequest->id,
+            'user_id' => auth()->id(), // Admin's user ID
+            'comment' => $request->comment,
+        ]);
+
+        return redirect()->back();
     }
 
     // Approve the request

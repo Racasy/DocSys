@@ -103,13 +103,21 @@ function stampDocument(docId) {
   });
 }
 
+// Add commentForm reactive state
+const commentForm = useForm({
+  comment: '',
+});
+
+// Add submitComment function
+function submitComment() {
+  commentForm.post(route('admin.requests.comment', props.documentRequest.id), {
+    preserveScroll: true,
+    onSuccess: () => commentForm.reset('comment'),
+  });
+}
+
 // Approve form
 const approveForm = useForm({});
-
-// Deny form, includes a comment field
-// const denyForm = useForm({
-//   comment: ''
-// });
 
 function approveRequest() {
   approveForm.post(route('admin.requests.approve', props.documentRequest.id), {
@@ -303,6 +311,47 @@ function getStatusClass(status) {
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+      <!-- Comments Section -->
+      <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+        <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
+          <h2 class="text-xl font-semibold text-gray-800">Komentāri</h2>
+        </div>
+        <div class="p-6 space-y-4">
+          <div v-if="documentRequest.comments?.length" class="space-y-4">
+            <div
+              v-for="comment in documentRequest.comments"
+              :key="comment.id"
+              class="bg-gray-50 rounded-md p-4"
+            >
+              <p class="font-medium text-gray-700">{{ comment.user.name }}</p>
+              <p class="text-gray-600">{{ comment.comment }}</p>
+              <p class="text-xs text-gray-400">{{ comment.created_at }}</p>
+            </div>
+          </div>
+          <p v-else class="text-gray-500 italic">Nav komentāru</p>
+
+          <!-- Comment Form -->
+          <form @submit.prevent="submitComment" class="space-y-4">
+            <div>
+              <label for="comment" class="block text-sm font-medium text-gray-700 mb-2">
+                Pievienot komentāru
+              </label>
+              <textarea
+                id="comment"
+                v-model="commentForm.comment"
+                rows="3"
+                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                placeholder="Raksti savu komentāru šeit"
+              ></textarea>
+              <InputError :message="commentForm.errors.comment" class="mt-2" />
+            </div>
+            <PrimaryButton :disabled="commentForm.processing">
+              <span v-if="commentForm.processing">Notiek...</span>
+              <span v-else>Pievienot</span>
+            </PrimaryButton>
+          </form>
         </div>
       </div>
 

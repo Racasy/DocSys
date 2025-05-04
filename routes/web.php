@@ -71,6 +71,8 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/admin/requests', [AdminRequestController::class, 'store'])
             ->name('admin.requests.store');
+        Route::post('/admin/requests/{request}/comment', [AdminRequestController::class, 'storeComment'])
+            ->name('admin.requests.comment');
 
         Route::get('/admin/requests/create', [AdminRequestController::class, 'create'])
             ->name('admin.requests.create');
