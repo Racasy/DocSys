@@ -31,6 +31,13 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        if (Auth::user()->is_disabled) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return back()->withErrors(['email' => 'Jūsu kontrs ir atspējots']);
+        }
+
         $request->session()->regenerate();
 
         $redirectUrl = Auth::user()->role === 'admin'

@@ -91,6 +91,19 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/admin/documents/{document}/download', [AdminRequestController::class, 'download'])
             ->name('admin.documents.download');
+
+
+        Route::get('/admin/manage-users', [UserController::class, 'users'])
+            ->name('admin.users');
+
+        Route::get('/admin/user/{id}', [UserController::class, 'user'])
+        ->name('admin.user');
+
+        Route::put('/admin/user/{id}/toggle-disable', [UserController::class, 'toggleDisable'])
+        ->name('admin.user.toggleDisable');
+
+        Route::delete('/admin/user/{id}', [UserController::class, 'deleteUser'])
+        ->name('admin.user.delete');
         
 
         // Approve or deny
