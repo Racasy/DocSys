@@ -219,7 +219,7 @@ class DocumentRequestController extends Controller
             // Return the path as is
             return $file->getPathname();
         }
-
+        
         throw new \Exception("Unsupported file type: {$extension}");
     }
 

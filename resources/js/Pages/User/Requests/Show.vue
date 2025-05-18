@@ -1,13 +1,12 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { defineProps, ref } from 'vue';
+import { defineProps, ref, onMounted, onUnmounted } from 'vue';
 import { useForm, router, Head } from '@inertiajs/vue3';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 
 const props = defineProps({
   documentRequest: Object,
-  daysLeft: Number,
 });
 
 const uploadForm = useForm({
@@ -20,6 +19,46 @@ const commentForm = useForm({
 });
 
 const filesInput = ref(null);
+const timeLeft = ref('');
+
+function calculateTimeLeft() {
+  const deadlineDate = new Date(props.documentRequest.deadline);
+  const now = new Date();
+  const diff = deadlineDate - now;
+
+  if (diff < 0) {
+    timeLeft.value = 'Termiņš ir beidzies';
+    return;
+  }
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  const timeParts = [];
+  
+  if (days > 0) {
+    timeParts.push(`${days} ${days === 1 ? 'diena' : 'dienas'}`);
+    timeParts.push(`${hours} ${hours === 1 ? 'stunda' : 'stundas'}`);
+  } else {
+    timeParts.push(`${hours} ${hours === 1 ? 'stunda' : 'stundas'}`);
+  }
+  
+  timeParts.push(`${minutes} ${minutes === 1 ? 'minūte' : 'minūtes'}`);
+
+  // Format the output string
+  if (timeParts.length > 2) {
+    timeLeft.value = `${timeParts[0]}, ${timeParts[1]} un ${timeParts[2]} atlikušas`;
+  } else {
+    timeLeft.value = `${timeParts[0]} un ${timeParts[1]} atlikušas`;
+  }
+}
+
+onMounted(() => {
+  calculateTimeLeft();
+  const interval = setInterval(calculateTimeLeft, 60000);
+  onUnmounted(() => clearInterval(interval));
+});
 
 function handleFiles(event) {
   uploadForm.files = event.target.files;
@@ -99,7 +138,7 @@ function getStatusClass(status) {
               </h3>
               <p class="text-lg font-medium text-gray-900">
                 {{ documentRequest.deadline }}
-                <span v-if="daysLeft !== null"> ({{ daysLeft }} dienas atlikušas) </span>
+                <span v-if="timeLeft"> ({{ timeLeft }}) </span>
               </p>
             </div>
           </div>

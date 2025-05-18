@@ -13,7 +13,7 @@ pdfam pievienot lapu:
 sudo apt install php-imagick
 windows: imagick dll's on C:/php/ext
 
-https://mlocati.github.io/articles/php-windows-imagick.htmlhttps://mlocati.github.io/articles/php-windows-imagick.html
+https://mlocati.github.io/articles/php-windows-imagick.htmlnpm
 
 On Linux (deploy to Ubuntu/Debian)
 bash
