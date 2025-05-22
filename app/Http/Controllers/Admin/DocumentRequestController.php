@@ -158,11 +158,11 @@ class DocumentRequestController extends Controller
         // Append a new page with all stamp details
         $pdf->AddPage();
         $pdf->SetFont('Arial', '', 12);
-        $pdf->Cell(0, 10, 'Digitālais zīmogs', 0, 1);
+        $pdf->Cell(0, 10, 'Digitals zimogs', 0, 1);
         
         // Process each stamp in the request
         foreach ($request->stamps as $index => $stamp) {
-            $pdf->Cell(0, 10, 'Zīmogs #' . ($index + 1), 0, 1);
+            $pdf->Cell(0, 10, 'Zimogs #' . ($index + 1), 0, 1);
             $pdf->Cell(0, 10, 'D: ' . $stamp['debit'], 0, 1);
             $pdf->Cell(0, 10, 'K: ' . $stamp['credit'], 0, 1);
             $pdf->Cell(0, 10, 'Summa: ' . $stamp['amount'] . ' EUR', 0, 1);
@@ -256,7 +256,7 @@ class DocumentRequestController extends Controller
             'status'      => 'pending',
         ]);
 
-        return redirect()->route('admin.requests.pending')
+        return redirect()->route('admin.requests.create')
             ->with('success','Request created successfully!');
     }
 

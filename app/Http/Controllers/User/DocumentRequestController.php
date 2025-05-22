@@ -20,14 +20,46 @@ use Auth;
 class DocumentRequestController extends Controller
 {
     // Show all requests for the logged-in user
-    public function index()
+    public function index(Request $request)
     {
-        $requests = DocumentRequest::where('user_id', Auth::id())
-            ->orderBy('created_at','desc')
-            ->get();
+        $searchQuery = $request->input('searchQuery', '');
+        $filterOption = $request->input('filterOption', 'all');
+        $sortOption = $request->input('sortOption', 'created_at');
+
+        $query = DocumentRequest::where('user_id', Auth::id())
+            ->withCount('documents')
+            ->orderBy('created_at', 'desc');
+
+        // Search filter
+        if ($searchQuery) {
+            $query->where('title', 'like', '%'.$searchQuery.'%');
+        }
+
+        // Status filter
+        if ($filterOption !== 'all') {
+            $query->where('status', $filterOption);
+        }
+
+        // Sorting
+        $sortParts = explode('-', $sortOption);
+        $sortField = $sortParts[0];
+        $sortDirection = count($sortParts) > 1 ? 'desc' : 'asc';
+
+        if ($sortField === 'deadline') {
+            $query->orderBy('deadline', $sortDirection);
+        } else {
+            $query->orderBy('created_at', $sortDirection);
+        }
+
+        $requests = $query->paginate(10);
 
         return inertia('User/Requests/Index', [
-            'requests' => $requests
+            'requests' => $requests,
+            'filters' => [
+                'searchQuery' => $searchQuery,
+                'filterOption' => $filterOption,
+                'sortOption' => $sortOption,
+            ],
         ]);
     }
 
@@ -183,7 +215,8 @@ class DocumentRequestController extends Controller
         // Set the submitted date/time
         $docRequest->submitted_at = now();
         $docRequest->save();
-    
+        
+
         return redirect()->route('user.requests.show', $docRequest->id)
                          ->with('success', 'Request submitted successfully!');
     }

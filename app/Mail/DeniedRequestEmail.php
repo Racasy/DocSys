@@ -35,7 +35,7 @@ class DeniedRequestEmail extends Mailable
     public function build()
     {
         return $this->view('emails.denied')
-                    ->subject('Jūsu pieprasījums tika noraidīts')
+                    ->subject('Jūsu iesniegums tika noraidīts')
                     ->with([
                         'user' => $this->user,
                         'requestTitle' => $this->requestTitle,

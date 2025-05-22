@@ -37,7 +37,7 @@ const form = useForm({
         <!-- Form fields with improved styling -->
         <div class="grid gap-6 md:grid-cols-2">
           <div>
-            <InputLabel for="name" value="Vārds" class="text-gray-700" />
+            <InputLabel for="name" value="Nosaukums" class="text-gray-700" />
             <div 
               id="name" 
               class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 p-2.5 text-gray-900 shadow-sm" 

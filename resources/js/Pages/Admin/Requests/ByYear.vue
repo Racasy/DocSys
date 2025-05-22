@@ -79,10 +79,10 @@ function getStatusClass(status) {
             </p>
           </div>
           <Link 
-            href="/admin/requests" 
+            :href="route('admin.users.years', user.id)" 
             class="mt-3 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700"
           >
-            Atpakaļ uz visiem pieprasījumiem
+            Atpakaļ uz gadu izvēlni
           </Link>
         </div>
 

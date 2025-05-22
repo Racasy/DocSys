@@ -1,6 +1,7 @@
 <script setup>
 import { Head, useForm, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import InputError from '@/Components/InputError.vue';
 
 const isDarkMode = ref(false);
 
@@ -26,11 +27,9 @@ const submit = () => {
         <!-- Header -->
         <header :class="['fixed w-full top-0 z-10 transition-colors duration-200', isDarkMode ? 'bg-gray-900' : 'bg-[#FFEDD8]']">
             <div class="container mx-auto flex justify-between items-center p-4">
-                <!-- Logo -->
                 <div class="flex items-center">
                     <img src="/images/logo2.png" alt="Logo" class="h-8" />
                 </div>
-
             </div>
         </header>
 
@@ -52,9 +51,14 @@ const submit = () => {
                             <input 
                                 type="email"
                                 v-model="form.email"
+                                required
+                                autofocus
+                                autocomplete="username"
                                 :class="['w-full p-2 rounded border transition-colors duration-200',
                                     isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-[#FFEDD8] border-[#d4a258] text-[#891652]']"
+                                placeholder="jūsu.epasts@example.com"
                             />
+                            <InputError class="mt-2" :message="form.errors.email" />
                         </div>
                         
                         <div class="mb-6">
@@ -64,19 +68,41 @@ const submit = () => {
                             <input 
                                 type="password"
                                 v-model="form.password"
+                                required
+                                autocomplete="current-password"
                                 :class="['w-full p-2 rounded border transition-colors duration-200',
                                     isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-[#FFEDD8] border-[#d4a258] text-[#891652]']"
+                                placeholder="••••••••"
                             />
+                            <InputError class="mt-2" :message="form.errors.password" />
                             <a :href="route('password.request')" class="text-[#891652] hover:text-[#d4a258] text-sm mt-1 block transition-colors">
                                 Aizmirsi paroli?
                             </a>
                         </div>
 
+                        <!-- Add "Atcerēties mani" (Remember me) -->
+                        <div class="mb-4 flex items-center">
+                            <input 
+                                type="checkbox" 
+                                id="remember" 
+                                v-model="form.remember"
+                                class="rounded border-[#d4a258] text-[#891652] focus:ring-[#891652]"
+                            />
+                            <label 
+                                for="remember" 
+                                :class="['ml-2 text-sm', isDarkMode ? 'text-gray-300' : 'text-[#891652]']"
+                            >
+                                Atcerēties mani
+                            </label>
+                        </div>
+
                         <button 
                             type="submit"
                             class="w-full bg-[#891652] text-white py-2 rounded hover:bg-[#d4a258] transition-colors"
+                            :disabled="form.processing"
                         >
-                            Pieslēgties
+                            <span v-if="form.processing">Pieslēdzas...</span>
+                            <span v-else>Pieslēgties</span>
                         </button>
                     </form>
                 </div>
@@ -85,7 +111,7 @@ const submit = () => {
             <!-- Right Side - Image -->
             <div class="w-1/2 flex items-center justify-center p-8">
                 <div class="w-96">
-                    <img src="/images/dashboard.svg" alt="Main illustration" class="w-full" />
+                    <img src="/images/dashboard.svg" alt="Galvenais ilustrācijas attēls" class="w-full" />
                 </div>
             </div>
         </main>
@@ -95,7 +121,6 @@ const submit = () => {
             isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-[#FFEDD8] border-[#d4a258]']">
             <div class="container mx-auto px-4 py-3">
                 <div class="flex justify-between text-sm" :class="isDarkMode ? 'text-gray-400' : 'text-[#891652]'">
-
                     <div>
                         © "SIA Abrams Business Services" Visas tiesības aizsargātas.
                     </div>

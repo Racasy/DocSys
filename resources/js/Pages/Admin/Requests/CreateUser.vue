@@ -21,7 +21,7 @@ const submit = () => {
         <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
             <div class="bg-white rounded-lg shadow-md overflow-hidden">
                 <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
-                    <h1 class="text-2xl font-bold text-gray-800">Izveidot jaunu uzņēmumu</h1>
+                    <h1 class="text-2xl font-bold text-gray-800">Izveidot jaunu lietotāju</h1>
                 </div>
 
                 <div class="p-6">

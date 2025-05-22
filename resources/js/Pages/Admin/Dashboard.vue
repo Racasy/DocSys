@@ -39,7 +39,7 @@ function getStatusClass(status) {
                         </div>
                         <div class="ml-4">
                             <h3 class="text-lg font-medium text-gray-900">
-                                Tev ir {{ stats.in_progress }} iesniegumi kas jāapstrādā!
+                                Tev ir {{ stats.in_progress }} iesniegumi, kas jāapstrādā!
                             </h3>
                             <p class="text-sm text-gray-500">Laiks ķerties pie darba!</p>
                         </div>
@@ -76,7 +76,7 @@ function getStatusClass(status) {
                                 </svg>
                             </div>
                             <div class="ml-5">
-                                <p class="text-sm font-medium text-gray-500">Iesniegti</p>
+                                <p class="text-sm font-medium text-gray-500">Iesniegti (jāapstrādā)</p>
                                 <p class="text-3xl font-bold text-blue-600">{{ stats.in_progress }}</p>
                             </div>
                         </div>

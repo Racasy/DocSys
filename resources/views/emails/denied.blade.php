@@ -97,13 +97,13 @@
         <div class="content">
             <h1>Sveiki, {{ $user->name }}</h1>
 
-            <p>Jūsu pieprasījums "{{ $requestTitle }}" tika noraidīts.</p>
+            <p>Jūsu iesniegums "{{ $requestTitle }}" tika noraidīts.</p>
 
             <div class="details">
                 <p><strong>Noraidījuma iemesls:</strong> {{ $reason }}</p>
             </div>
 
-            <p>Lūdzu, sazinieties ar administratoru, ja jums ir kādi jautājumi.</p>
+            <p>Neuztraucies! Jauns iesniegums, ko vajag iesniegt, jau tevi gaida!</p>
         </div>
 
         <div class="footer">

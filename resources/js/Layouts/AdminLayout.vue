@@ -119,38 +119,6 @@
               Uzņēmumi
             </span>
           </Link>
-  
-          <Link
-            :href="route('admin.requests.all')"
-            :class="{
-              'bg-purple-100 text-[#891652] border-l-4 border-[#891652]': route().current('admin.requests.all'),
-              'hover:bg-purple-50 hover:text-[#891652]': !route().current('admin.requests.all'),
-              'justify-center': sidebarCollapsed && !isMobile,
-              'justify-start': !sidebarCollapsed || isMobile,
-            }"
-            class="flex items-center px-4 py-3 text-gray-700 rounded-lg transition-colors group"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <span
-              :class="{ 'opacity-0 w-0': sidebarCollapsed && !isMobile, 'ml-3': !sidebarCollapsed || isMobile }"
-              class="transition-all duration-300"
-            >
-              Iesniegumi visi
-            </span>
-            <span
-              v-if="sidebarCollapsed && !isMobile"
-              class="absolute left-full rounded-md px-2 py-1 ml-6 bg-purple-100 text-sm text-[#891652] invisible opacity-0 -translate-x-3 group-hover:visible group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
-            >
-              Iesniegumi visi
-            </span>
-          </Link>
 
           <Link
             :href="route('admin.users')"
@@ -180,39 +148,6 @@
               class="absolute left-full rounded-md px-2 py-1 ml-6 bg-purple-100 text-sm text-[#891652] invisible opacity-0 -translate-x-3 group-hover:visible group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
             >
               Pārvaldīt lietotājus
-            </span>
-          </Link>
-  
-          <Link
-            :href="route('admin.requests.pending')"
-            :class="{
-              'bg-purple-100 text-[#891652] border-l-4 border-[#891652]': route().current('admin.requests.pending'),
-              'hover:bg-purple-50 hover:text-[#891652]': !route().current('admin.requests.pending'),
-              'justify-center': sidebarCollapsed && !isMobile,
-              'justify-start': !sidebarCollapsed || isMobile,
-            }"
-            class="flex items-center px-4 py-3 text-gray-700 rounded-lg transition-colors group"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            
-            <span
-              :class="{ 'opacity-0 w-0': sidebarCollapsed && !isMobile, 'ml-3': !sidebarCollapsed || isMobile }"
-              class="transition-all duration-300"
-            >
-              Iesniegumi procesā
-            </span>
-            <span
-              v-if="sidebarCollapsed && !isMobile"
-              class="absolute left-full rounded-md px-2 py-1 ml-6 bg-purple-100 text-sm text-[#891652] invisible opacity-0 -translate-x-3 group-hover:visible group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
-            >
-              Iesniegumi procesā
             </span>
           </Link>
   

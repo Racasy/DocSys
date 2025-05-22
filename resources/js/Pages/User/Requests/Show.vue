@@ -20,6 +20,7 @@ const commentForm = useForm({
 
 const filesInput = ref(null);
 const timeLeft = ref('');
+const showSubmitConfirm = ref(false);
 
 function calculateTimeLeft() {
   const deadlineDate = new Date(props.documentRequest.deadline);
@@ -95,12 +96,53 @@ function deleteDoc(id) {
   });
 }
 
+function showSubmitConfirmation() {
+  showSubmitConfirm.value = true;
+}
+
+function confirmSubmit() {
+  router.post(route('user.requests.submit', props.documentRequest.id), {
+    onSuccess: () => {
+      showSubmitConfirm.value = false;
+      console.log('Modal should be hidden now:', showSubmitConfirm.value);
+    },
+    onError: (errors) => {
+      console.error('Submit error:', errors);
+      showSubmitConfirm.value = false;
+    },
+    onFinish: () => {
+      showSubmitConfirm.value = false;
+    }
+  });
+}
+
+function cancelSubmit() {
+  showSubmitConfirm.value = false;
+}
+
+function handleModalBackdropClick(event) {
+  if (event.target === event.currentTarget) {
+    showSubmitConfirm.value = false;
+  }
+}
+
 function getStatusClass(status) {
   switch(status) {
     case 'pending': return 'bg-yellow-100 text-yellow-800';
+    case 'in_progress': return 'bg-blue-100 text-blue-800';
     case 'approved': return 'bg-green-100 text-green-800';
     case 'denied': return 'bg-red-100 text-red-800';
     default: return 'bg-gray-100 text-gray-800';
+  }
+}
+
+function getStatusTranslation(status) {
+  switch(status) {
+    case 'pending': return 'Nav iesniegts';
+    case 'in_progress': return 'Iesniegts';
+    case 'approved': return 'Apstiprināts';
+    case 'denied': return 'Noraidīts';
+    default: return status;
   }
 }
 </script>
@@ -115,12 +157,25 @@ function getStatusClass(status) {
           <h1 class="text-2xl font-bold text-gray-800">
             Iesniegums #{{ documentRequest.id }}
           </h1>
-          <span
-            class="px-3 py-1 rounded-full text-sm font-medium"
-            :class="getStatusClass(documentRequest.status)"
-          >
-            {{ documentRequest.status }}
-          </span>
+          <div class="flex items-center space-x-4">
+            <span
+              class="px-3 py-1 rounded-full text-sm font-medium"
+              :class="getStatusClass(documentRequest.status)"
+            >
+              {{ getStatusTranslation(documentRequest.status) }}
+            </span>
+            <!-- Top Submit Button -->
+            <button
+              v-if="documentRequest.status === 'pending' && documentRequest.documents?.length"
+              @click="showSubmitConfirmation"
+              class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md shadow-sm transition-colors flex items-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Iesniegt dokumentus
+            </button>
+          </div>
         </div>
         <div class="p-6 space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -258,12 +313,12 @@ function getStatusClass(status) {
         <p class="font-semibold">Augšupielāde nav pieejama</p>
         <p>
           Dokumentu vairs nevar augšupielādēt, jo iesnieguma statuss ir
-          <strong>{{ documentRequest.status }}</strong>.
+          <strong>{{ getStatusTranslation(documentRequest.status) }}</strong>.
         </p>
       </div>
 
       <!-- Upload Form (only if pending) -->
-      <div v-if="documentRequest.status === 'pending'" class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div v-if="documentRequest.status === 'pending'" class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
         <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
           <h2 class="text-xl font-semibold text-gray-800">Augšupielādēt dokumentu</h2>
         </div>
@@ -304,7 +359,7 @@ function getStatusClass(status) {
                   >
                     <circle
                       class="opacity-25"
-                      cx="12"
+                      cx="12"  
                       cy="12"
                       r="10"
                       stroke="currentColor"
@@ -325,19 +380,65 @@ function getStatusClass(status) {
         </div>
       </div>
 
-      <!-- "Iesniegt" button: finalize request -->
+      <!-- Bottom "Iesniegt" button (enhanced) -->
       <div
         v-if="documentRequest.status === 'pending' && documentRequest.documents?.length"
-        class="mt-6 flex"
+        class="mt-6"
       >
-        <form :action="route('user.requests.submit', documentRequest.id)" method="POST">
-          <PrimaryButton
-            @click.prevent="() => router.post(route('user.requests.submit', documentRequest.id))"
+        <button
+          @click="showSubmitConfirmation"
+          class="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md shadow-md transition-colors flex items-center justify-center"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Iesniegt dokumentus
+        </button>
+        <p class="text-center text-sm text-gray-500 mt-2">
+          Pēc iesniegšanas vairs nevarēsiet veikt izmaiņas
+        </p>
+      </div>
+    </div>
+
+    <!-- Submit Confirmation Modal -->
+    <div v-if="showSubmitConfirm" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50" @click="handleModalBackdropClick">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4 animate-modal" @click.stop>
+        <div class="flex items-center justify-center mb-4 text-green-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 text-center mb-1">Iesniegt dokumentus</h3>
+        <p class="text-center text-gray-600 mb-6">
+          Vai tiešām vēlaties iesniegt šos dokumentus? Pēc iesniegšanas vairs nevarēsiet augšupielādēt vai dzēst dokumentus.
+        </p>
+        
+        <div class="flex justify-center space-x-4">
+          <button 
+            @click="cancelSubmit" 
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+          >
+            Atcelt
+          </button>
+          <button 
+            @click="confirmSubmit" 
+            class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
           >
             Iesniegt
-          </PrimaryButton>
-        </form>
+          </button>
+        </div>
       </div>
     </div>
   </AuthenticatedLayout>
 </template>
+
+<style scoped>
+.animate-modal {
+  animation: modalEnter 0.3s ease-out;
+}
+
+@keyframes modalEnter {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+</style>
