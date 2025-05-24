@@ -101,19 +101,22 @@ function showSubmitConfirmation() {
 }
 
 function confirmSubmit() {
-  router.post(route('user.requests.submit', props.documentRequest.id), {
-    onSuccess: () => {
-      showSubmitConfirm.value = false;
-      console.log('Modal should be hidden now:', showSubmitConfirm.value);
-    },
-    onError: (errors) => {
-      console.error('Submit error:', errors);
-      showSubmitConfirm.value = false;
-    },
-    onFinish: () => {
-      showSubmitConfirm.value = false;
+  router.post(
+    route('user.requests.submit', props.documentRequest.id),
+    {}, // Add empty data object
+    {
+      onSuccess: () => {
+        showSubmitConfirm.value = false;
+      },
+      onError: (errors) => {
+        console.error('Submit error:', errors);
+        showSubmitConfirm.value = false;
+      },
+      onFinish: () => {
+        showSubmitConfirm.value = false;
+      }
     }
-  });
+  );
 }
 
 function cancelSubmit() {

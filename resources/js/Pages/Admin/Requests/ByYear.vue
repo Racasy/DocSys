@@ -66,6 +66,7 @@ function getStatusClass(status) {
 
 <template>
   <AdminLayout>
+    <Head title="Gadi" />
     <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div class="bg-white rounded-lg shadow-md overflow-hidden">
         <!-- Header with context -->

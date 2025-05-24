@@ -20,7 +20,7 @@ function getStatusClass(status) {
 </script>
 
 <template>
-    <Head title="Admina Panelis" />
+    <Head title="Sākums" />
 
     <AdminLayout>
         <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">

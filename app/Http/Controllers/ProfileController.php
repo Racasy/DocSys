@@ -51,9 +51,10 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        Auth::logout();
+        $user->is_disabled = true;
+        $user->save();
 
-        $user->delete();
+        Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
