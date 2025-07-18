@@ -347,7 +347,7 @@ class DocumentRequestController extends Controller
     
             DB::commit();
     
-            return redirect()->route('admin.requests.all')
+            return redirect()->route('admin.users.index')
                 ->with('success', 'Request denied and new one created!');
     
         } catch (\Exception $e) {

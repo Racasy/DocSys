@@ -346,7 +346,7 @@ function getStatusTranslation(status) {
                   />
                 </label>
                 <span class="ml-3 text-sm text-gray-500" v-if="uploadForm.files?.length">
-                  {{ uploadForm.files.length }} failu izvēlēti
+                  {{ uploadForm.files.length }} faili izvēlēti
                 </span>
               </div>
               <InputError :message="uploadForm.errors?.[0]?.message" class="mt-2" />

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Traits\Auditable;
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -13,6 +14,8 @@ use Inertia\Response;
 
 class ProfileController extends Controller
 {
+    use Auditable;
+
     /**
      * Display the user's profile form.
      */
@@ -36,6 +39,11 @@ class ProfileController extends Controller
         }
 
         $request->user()->save();
+
+        $this->logAudit('email_changed', [
+        'old_email' => user()->email,
+        'new_email' => $request,
+        ]);
 
         return Redirect::route('profile.edit');
     }

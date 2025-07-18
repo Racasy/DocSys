@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AuditLogController;
 
 use App\Http\Middleware\RoleMiddleware;
 
@@ -47,7 +48,10 @@ Route::middleware('auth')->group(function () {
         
             return Response::file($path);
         })->name('admin.documents.view');
-        
+
+        Route::get('/admin/audit-logs', [AuditLogController::class, 'index'])
+        ->name('admin.audit.logs');
+
         Route::get('/admin/users', [UserController::class, 'index'])
             ->name('admin.users.index');
         Route::get('/admin/users/{user}/years', [UserController::class, 'years'])
@@ -118,12 +122,8 @@ Route::middleware('auth')->group(function () {
     // Routes for User
     Route::middleware([RoleMiddleware::class.':user'])->group(function () { 
 
-        Route::post('/send-test-email', function () {
-            Mail::to('oto.abrams@gmail.com')->send(new TestMail());
-            return response()->json(['message' => 'Email sent successfully']);
-        });
-
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/policy', [DashboardController::class, 'show'])->name('show');
 
         Route::get('/user/documents/{document}/download', [UserRequestController::class, 'download'])
             ->name('documents.download');

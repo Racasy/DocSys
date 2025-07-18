@@ -8,6 +8,7 @@ use setasign\Fpdf\Fpdf;
 use setasign\Fpdi\PdfReader;
 use Google\Cloud\Storage\StorageClient;
 
+use App\Traits\Auditable;
 use Illuminate\Http\File;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -19,6 +20,8 @@ use Auth;
 
 class DocumentRequestController extends Controller
 {
+    use Auditable;
+
     // Show all requests for the logged-in user
     public function index(Request $request)
     {
@@ -115,6 +118,11 @@ class DocumentRequestController extends Controller
     
         // Delete from DB
         $document->delete();
+
+        $this->logAudit('document_deleted', [
+        'document_id' => $document->id,
+        'file_name' => $document->file_name,
+        ]);
     
         return redirect()->back()->with('message', 'Dokuments veiksmīgi izdzēsts.');
     }
@@ -177,6 +185,11 @@ class DocumentRequestController extends Controller
                         'uploaded_at'  => now(),
                     ]);
 
+                    $this->logAudit('uploaded_document', [
+                    'document_id' => $document->id,
+                    'file_name' => $uniqueFileName,
+                    ]);
+
                     $uploadedFiles[] = $document->id;
                     $uploadedCount++;
                 } catch (\Exception $e) {
@@ -216,6 +229,7 @@ class DocumentRequestController extends Controller
         $docRequest->submitted_at = now();
         $docRequest->save();
         
+        $this->logAudit('submitted_request', ['request_id' => $docRequest->id]);
 
         return redirect()->route('user.requests.show', $docRequest->id)
                          ->with('success', 'Request submitted successfully!');
@@ -228,6 +242,12 @@ class DocumentRequestController extends Controller
             // Generate a signed URL for temporary access (e.g., 30 minutes)
             $url = Storage::disk('gcs')->temporaryUrl($document->file_path, now()->addMinutes(30));
             return redirect($url);
+
+            $this->logAudit('download_link_created', [
+            'url' => $url,
+            'file_name' => $document->file_name,
+            ]);
+
         } catch (\Google\Cloud\Core\Exception\GoogleException $e) {
             \Log::error("Error generating signed URL: " . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to generate file URL: ' . $e->getMessage());

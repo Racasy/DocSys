@@ -33,4 +33,9 @@ class DashboardController extends Controller
             'stats' => $stats
         ]);
     }
+
+    public function show()
+    {
+        return Inertia::render('User/PrivPolicy', []);
+    }
 }
